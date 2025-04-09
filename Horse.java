@@ -3,7 +3,7 @@
  * Write a description of class Horse here.
  * 
  * @author Fahi Sabab, Al
- * @version 1.0 9/4/2025
+ * @version 1.1 9/4/2025
  */
 public class Horse
 {
@@ -86,10 +86,11 @@ public class Horse
     }
     public void moveForward()
     {
-        
+        this.distanceTravelled ++;
     }
     public void goBackToStart()
     {
-        
+        this.distanceTravelled = 0;
+        this.hasFallen = false;
     }
 }
