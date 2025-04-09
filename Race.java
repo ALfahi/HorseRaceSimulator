@@ -1,7 +1,7 @@
 import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 import java.util.List;
-
+import java.util.ArrayList;
 /**
  * A three-horse race, each horse running in its own lane
  * for a given distance
@@ -12,9 +12,10 @@ import java.util.List;
 public class Race
 {
     private int raceLength;
-    private Horse lane1Horse;
-    private Horse lane2Horse;
-    private Horse lane3Horse;
+    private List<Horse> lane = new ArrayList<Horse>();// use an arrayList to dynamically store the horses in the lanes.
+    private List<Horse> currentHorses = new ArrayList<Horse>();// store all the used horses.
+    private int maxLanes;
+    private int remainingHorses = 0;
 
     /**
      * Constructor for objects of class Race
@@ -22,38 +23,44 @@ public class Race
      * 
      * @param distance the length of the racetrack (in metres/yards...)
      */
-    public Race(int distance)
+    public Race(int distance, int lanes)
     {
         // initialise instance variables
-        raceLength = distance;
-        lane1Horse = null;
-        lane2Horse = null;
-        lane3Horse = null;
+        this.raceLength = distance;
+        this.maxLanes = lanes;
+        for (int i = 0; i < lanes; i++)
+        {
+            lane.add(null); // add null to the list of horses
+        }
+
     }
     
     /**
      * Adds a horse to the race in a given lane
      * 
      * @param theHorse the horse to be added to the race
-     * @param laneNumber the lane that the horse will be added to
+     * @param laneNumber the lane that the horse will be added to (starts at 1)
      */
+    // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     public void addHorse(Horse theHorse, int laneNumber)
     {
-        if (laneNumber == 1)
+        
+        if (laneNumber > 0 && laneNumber <= maxLanes)
         {
-            lane1Horse = theHorse;
-        }
-        else if (laneNumber == 2)
-        {
-            lane2Horse = theHorse;
-        }
-        else if (laneNumber == 3)
-        {
-            lane3Horse = theHorse;
+            if (lane.get(laneNumber - 1) == null) // check if the lane is empty
+            {
+                lane.set(laneNumber - 1, theHorse); // add the horse to the lane
+                currentHorses.add(theHorse); // add the horse to the list of  the current horses
+                remainingHorses ++;
+            }
+            else
+            {
+                System.out.println("Lane " + laneNumber + " is already occupied by " + lane.get(laneNumber - 1).getName());
+            }
         }
         else
         {
-            System.out.println("Cannot add horse to lane " + laneNumber + " because there is no such lane");
+            System.out.println("Sorry but lane " + laneNumber + " does not exist. Max lanes are " + this.maxLanes);
         }
     }
     
@@ -68,27 +75,37 @@ public class Race
         //declare a local variable to tell us when the race is finished
         boolean finished = false;
         
-        //reset all the lanes (all horses not fallen and back to 0). 
-        lane1Horse.goBackToStart();
-        lane2Horse.goBackToStart();
-        lane3Horse.goBackToStart();
+        // reset all the lanes.
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+           currentHorses.get(i).goBackToStart();
+        }
                       
         while (!finished)
         {
             //move each horse
-            moveHorse(lane1Horse);
-            moveHorse(lane2Horse);
-            moveHorse(lane3Horse);
-                        
+            for (int i = 0; i < currentHorses.size(); i++)
+            {
+                moveHorse(currentHorses.get(i)); // move the horse
+            }
+    
             //print the race positions
             printRace();
             
             //if any of the three horses has won the race is finished
-            if ( raceWonBy(lane1Horse) || raceWonBy(lane2Horse) || raceWonBy(lane3Horse) )
+            for (int i = 0; i < currentHorses.size(); i++)
             {
-                finished = true;
+                if(raceWonBy(currentHorses.get(i)))
+                {
+                    finished = true;
+                }
             }
            
+            if (remainingHorses == 0) // check if all horses have fallen, if so then end the race early.
+            {
+                finished = true;
+                System.out.println("All horses have fallen. No winner.");
+            } 
             //wait for 100 milliseconds
             try{ 
                 TimeUnit.MILLISECONDS.sleep(100);
@@ -121,6 +138,7 @@ public class Race
             if (Math.random() < (0.1*theHorse.getConfidence()*theHorse.getConfidence()))
             {
                 theHorse.fall();
+                remainingHorses --;// if horse has fallen, then decrement the number of remaining horses.
             }
         }
     }
@@ -154,14 +172,12 @@ public class Race
         multiplePrint('=',raceLength+3); //top edge of track
         System.out.println();
         
-        printLane(lane1Horse);
-        System.out.println();
-        
-        printLane(lane2Horse);
-        System.out.println();
-        
-        printLane(lane3Horse);
-        System.out.println();
+        for (int i = 0; i < lane.size(); i++)
+        {
+            //print the lane for each horse
+            printLane(lane.get(i));
+            System.out.println();
+        }
         
         multiplePrint('=',raceLength+3); //bottom edge of track
         System.out.println();    
@@ -174,7 +190,12 @@ public class Race
      * to show how far the horse has run
      */
     private void printLane(Horse theHorse)
-    {
+    {   if (theHorse == null) // check if the lane is empty
+        {
+            printEmptyLane(); // print empty lane
+            return; 
+        }
+
         //calculate how many spaces are needed before
         //and after the horse
         int spacesBefore = theHorse.getDistanceTravelled();
@@ -190,7 +211,7 @@ public class Race
         //else print the horse's symbol
         if(theHorse.hasFallen())
         {
-            System.out.print('\u2322');// wrong symbols
+            System.out.print("\u274C");// wrong symbols
         }
         else
         {
@@ -202,6 +223,15 @@ public class Race
         
         //print the | for the end of the track
         System.out.print('|');
+    }
+
+    // method to print an empty lane.
+    //
+    public void printEmptyLane()
+    {
+        System.out.print("|");
+        multiplePrint(' ', 30);
+        System.out.println("|");
     }
         
     
