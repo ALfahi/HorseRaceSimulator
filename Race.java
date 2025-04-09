@@ -1,5 +1,6 @@
 import java.util.concurrent.TimeUnit;
 import java.lang.Math;
+import java.util.List;
 
 /**
  * A three-horse race, each horse running in its own lane
@@ -134,6 +135,7 @@ public class Race
     {
         if (theHorse.getDistanceTravelled() == raceLength)
         {
+            System.out.println(theHorse.getName() + " has won!!!");// print out name of horse that won
             return true;
         }
         else
