@@ -34,6 +34,49 @@ public class Race
         }
 
     }
+    // checks if the passed in symbol is already in use by another horse.
+    // if it is, then return false, otherwise return true.
+    //
+    public boolean isUniqueHorse(Horse theHorse, char symbol)
+    {
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            if (currentHorses.get(i).getSymbol() == symbol)// mabye extend this check to names as well later.
+            {
+                return false; // horse is not unique
+            }
+        }
+        return true; // horse is unique
+    }
+
+    // checks if the lane is empty or not.
+    //
+    public boolean isLaneEmpty(int laneNumber)
+    {
+        if (lane.get(laneNumber - 1) == null) // check if the lane is empty
+        {
+            return true; // lane is empty
+        }
+        else
+        {
+            return false; 
+        }
+    }
+
+    // checks if the lane is full or not.
+    //
+    public boolean isLaneFull()
+    {
+        if (lane.size() == currentHorses.size())// check if all lanes are full (e.g. number of horses are the same as number of lanes)
+        {
+            return true; // all lanes are full
+        }
+        else
+        {
+            return false; // not all lanes are full
+        }
+    }
+
     
     /**
      * Adds a horse to the race in a given lane
@@ -44,10 +87,19 @@ public class Race
     // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     public void addHorse(Horse theHorse, int laneNumber)
     {
-        
+        if (isLaneFull())// check if all lanes are full
+        {
+            System.out.println("All lanes are full. Cannot add more horses.");
+            return;
+        }
+        if (!isUniqueHorse(theHorse, theHorse.getSymbol()))// check if the horse is unique
+        {
+            System.out.println("Horse " + theHorse.getName() + " with symbol " + theHorse.getSymbol() + " is already in use. Please choose another symbol.");
+            return;
+        }
         if (laneNumber > 0 && laneNumber <= maxLanes)
         {
-            if (lane.get(laneNumber - 1) == null) // check if the lane is empty
+            if (isLaneEmpty(laneNumber)) // check if the lane is empty
             {
                 lane.set(laneNumber - 1, theHorse); // add the horse to the lane
                 currentHorses.add(theHorse); // add the horse to the list of  the current horses
