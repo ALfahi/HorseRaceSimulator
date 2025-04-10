@@ -7,12 +7,10 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.7 9/4/2025
+ * @version 1.8 10/4/2025
  * 
- * - User can now set the race length and number of lanes
- * - User can start a new race from scratch without closing the program.
- * - added in some user validation
- * - Reorgnaised functions into different sections for better readability.
+ * - created some functions to perform certain actions on all horses easily e.g. moveAllHorses() or resetDistanceAllHorses().
+ *
  */
 public class Race
 {
@@ -86,6 +84,7 @@ public class Race
         currentHorses.add(theHorse); // add the horse to the list of  the current horses
         remainingHorses ++;
     }
+
 
      /**
      * Randomly make a horse move forward or fall depending
@@ -177,6 +176,47 @@ public class Race
        
 
     }
+
+    // This method goes through all the active horses and then makes them go back to start, also resetting their 
+    // hasFallen attributes back to false.
+    //
+    private void resetDistanceAllHorses()
+    {
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            currentHorses.get(i).goBackToStart();
+        }
+    }
+
+    // goes through all active horses and moves them
+    //
+    private void moveAllHorses()
+    {
+        for (int i = 0; i< currentHorses.size(); i ++)
+        {
+            moveHorse(currentHorses.get(i));
+        }
+    }
+
+    // goes through all active horses and checks if any of them won, if yes, then output true, otherwise output false
+    // returns boolean
+    //
+    private boolean  checkWin()
+    {
+        boolean win = false;
+        //if any of the horses has won the race is finished
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            if(raceWonBy(currentHorses.get(i)))
+            {
+                win = true;
+                Horse winner =currentHorses.get(i);
+                winner.setConfidence(winner.getConfidence() * 1.2);
+            }
+        }
+        return win;
+    }
+
 
     /************** User validation **********/
     // checks if the lane is empty or not.
@@ -315,34 +355,17 @@ public class Race
     private void startRace()
     {
         boolean finished = false;
-            
-        // reset all the lanes.
-        for (int i = 0; i < currentHorses.size(); i++)
-        {
-        currentHorses.get(i).goBackToStart();
-        }
-                    
+
+        resetDistanceAllHorses();// reset all horses except for their confidence.     
         while (!finished)
         {
-            //move each horse
-            for (int i = 0; i < currentHorses.size(); i++)
-            {
-                moveHorse(currentHorses.get(i)); // move the horse
-            }
+            moveAllHorses();// move all horses, some horses may fall
     
             //print the race positions
             printRace();
             
-            //if any of the horses has won the race is finished
-            for (int i = 0; i < currentHorses.size(); i++)
-            {
-                if(raceWonBy(currentHorses.get(i)))
-                {
-                    finished = true;
-                    Horse winner =currentHorses.get(i);
-                    winner.setConfidence(winner.getConfidence() * 1.2);
-                }
-            }
+            // check if a horse has won yet.
+            finished = checkWin();
         
             if (remainingHorses == 0) // check if all horses have fallen, if so then end the race early.
             {
