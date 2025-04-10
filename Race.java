@@ -6,15 +6,19 @@ import java.util.ArrayList;
  * A three-horse race, each horse running in its own lane
  * for a given distance
  * 
- * @author McRaceface
- * @version 1.0
+ * @author McRaceface, Fahi Sabab, Al
+ * @version 1.6 9/4/2025
+ * 
+ * - User can now add in horses in real time
+ *-  User can now start a race or replay a race without having to exit the program.
+ * - added in some user validation
  */
 public class Race
 {
     private int raceLength;
     private List<Horse> lane = new ArrayList<Horse>();// use an arrayList to dynamically store the horses in the lanes.
     private List<Horse> currentHorses = new ArrayList<Horse>();// store all the used horses.
-    private int maxLanes;
+    private int maxLanes = 3;// max number of lanes available.
     private int remainingHorses = 0;
 
     /**
@@ -23,12 +27,11 @@ public class Race
      * 
      * @param distance the length of the racetrack (in metres/yards...)
      */
-    public Race(int distance, int lanes)
+    public Race(int distance)
     {
         // initialise instance variables
         this.raceLength = distance;
-        this.maxLanes = lanes;
-        for (int i = 0; i < lanes; i++)
+        for (int i = 0; i < maxLanes; i++)
         {
             lane.add(null); // add null to the list of horses
         }
@@ -37,7 +40,7 @@ public class Race
     // checks if the passed in symbol is already in use by another horse.
     // if it is, then return false, otherwise return true.
     //
-    public boolean isUniqueHorse(Horse theHorse, char symbol)
+    public boolean isUniqueHorse(char symbol)
     {
         for (int i = 0; i < currentHorses.size(); i++)
         {
@@ -53,30 +56,18 @@ public class Race
     //
     public boolean isLaneEmpty(int laneNumber)
     {
-        if (lane.get(laneNumber - 1) == null) // check if the lane is empty
-        {
-            return true; // lane is empty
-        }
-        else
-        {
-            return false; 
-        }
+        return (lane.get(laneNumber - 1) == null);// check if the lane is empty
     }
 
     // checks if the lane is full or not.
     //
     public boolean isLaneFull()
     {
-        if (lane.size() == currentHorses.size())// check if all lanes are full (e.g. number of horses are the same as number of lanes)
-        {
-            return true; // all lanes are full
-        }
-        else
-        {
-            return false; // not all lanes are full
-        }
+        return (lane.size() == currentHorses.size());// check if all lanes are full (e.g. number of horses are the same as number of lanes)
+
     }
 
+    
     
     /**
      * Adds a horse to the race in a given lane
@@ -87,35 +78,152 @@ public class Race
     // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     public void addHorse(Horse theHorse, int laneNumber)
     {
-        if (isLaneFull())// check if all lanes are full
+       
+        lane.set(laneNumber - 1, theHorse); // add the horse to the lane
+        currentHorses.add(theHorse); // add the horse to the list of  the current horses
+        remainingHorses ++;
+    }
+
+    public  char getValidHorseSymbol(String message) 
+    {
+        String input;
+        //System.out.print(message);
+        
+        input = helperFunctions.getInput(message);
+        while (input.length() != 1 || !isUniqueHorse(input.charAt(0)))// check if the symbol is valid
         {
-            System.out.println("All lanes are full. Cannot add more horses.");
-            return;
-        }
-        if (!isUniqueHorse(theHorse, theHorse.getSymbol()))// check if the horse is unique
-        {
-            System.out.println("Horse " + theHorse.getName() + " with symbol " + theHorse.getSymbol() + " is already in use. Please choose another symbol.");
-            return;
-        }
-        if (laneNumber > 0 && laneNumber <= maxLanes)
-        {
-            if (isLaneEmpty(laneNumber)) // check if the lane is empty
+            if (input.length() != 1) // check if the input is a single character
             {
-                lane.set(laneNumber - 1, theHorse); // add the horse to the lane
-                currentHorses.add(theHorse); // add the horse to the list of  the current horses
-                remainingHorses ++;
+                System.out.println("Please enter a single character.");
             }
             else
             {
-                System.out.println("Lane " + laneNumber + " is already occupied by " + lane.get(laneNumber - 1).getName());
+                System.out.println("sorry but this symbol is already in use. Please choose another symbol.");
             }
+            input = helperFunctions.getInput(message);
+        }
+        return input.charAt(0); // return the valid character
+    }
+
+    public static String getValidHorseName(String message) // mabye extend this to prevent duplicate names.
+    {
+        String input = "";
+        while (input.trim() == "") // name must be a non empty string.
+        {
+            input = helperFunctions.getInput(message);
+        }
+        return input; // return the valid name
+    }
+
+    public static double getValidHorseConfidence(String message)
+    {
+        double horseConfidence = -1.0;
+        while (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is valid
+        {
+            try{
+                horseConfidence = Double.parseDouble(helperFunctions.getInput(message)); // get the horse confidence from the user
+            }catch(NumberFormatException e)
+            {
+                System.out.println("Please enter a number between 0 and 1, as a decimal");
+                horseConfidence = -1.0; // set the confidence to -1 to continue the loop
+            }
+            if (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is inside valid range
+            {
+                System.out.println("must be between 0 and 1, please try again.");
+            }
+    
+        }
+        return horseConfidence; // return the valid confidence
+    }
+
+    // if -1 is returned, lanes are full, otherwise return a valid number.
+    public  int getValidLaneNumber(String message)
+    {
+        int laneNumber = -1;
+        while (laneNumber < 1 || laneNumber > maxLanes) // check if the lane number is valid
+        {
+            try{
+                laneNumber = Integer.parseInt(helperFunctions.getInput(message)); // get the lane number from the user
+            }catch(NumberFormatException e)
+            {
+                System.out.println(message);
+                laneNumber = -1; 
+            }
+
+            if (laneNumber < 1 || laneNumber > maxLanes) // check if the lane number is inside valid range
+            {
+                System.out.println(message);
+            }
+            else if (!isLaneEmpty(laneNumber)) // check if the lane is empty
+            {
+                System.out.println("Lane " + laneNumber + " is already occupied by " + lane.get(laneNumber - 1).getName());
+                laneNumber = -1; // set the lane number to -1 to continue the loop
+            }
+    
+        }
+        return laneNumber; // return the valid lane number
+    }
+    public void createValidHorse()
+    {
+    
+        if (isLaneFull())
+        {
+            System.out.println("sorry but all lanes are full, we cannot add new horses at the moment")
         }
         else
         {
-            System.out.println("Sorry but lane " + laneNumber + " does not exist. Max lanes are " + this.maxLanes);
+            char horseSymbol = getValidHorseSymbol("Enter the horse symbol: "); // get the horse symbol from the user
+            String horseName = getValidHorseName("Enter the horse name: "); // get the horse name from the user
+            double horseConfidence = getValidHorseConfidence("Enter the horse confidence (0.0 - 1.0): "); // get the horse confidence from the user
+        
+            Horse newHorse = new Horse(horseSymbol, horseName, horseConfidence); // create a new horse object
+    
+        
+            int laneNumber = getValidLaneNumber("Enter the lane number must be between (1-" + maxLanes + "): "); // get the lane number from the user
+            addHorse(newHorse, laneNumber);
+        }
+       
+
+    }
+
+
+    public void mainGameLoop()
+    {
+        String userInput = "";
+        boolean endProgram = false;
+        String  initialChoices= "do you want to add a horse (ADD), start the race (START) or end the program (END)? ";
+        String postRaceChoices = "Do you want to replay the race (CONTINUE) or end the program (END)? ";
+        while (!endProgram)
+        {
+            userInput = helperFunctions.getValidInput(initialChoices, new String[]{"ADD", "START", "END"}); // get the user input from the user
+            if (userInput.equals("ADD"))
+            {
+                createValidHorse();
+            }
+            else if (userInput.equals("START"))
+            {
+                if (currentHorses.size() <2)
+                {
+                    System.out.println("we need at least 2 horses to start, currently we have " + currentHorses.size() + " horses.");
+                }
+                else
+                {
+                    startRace();
+                    // either ask if you would like to start a new race or end the program. or continue with old race.
+                    userInput = helperFunctions.getValidInput(postRaceChoices, new String[]{"CONTINUE", "END"});// add a option to start a new race from scratch.
+                    if (userInput.equals("END"))
+                    {
+                        endProgram = true;
+                    }
+                }
+            }
+            else if (userInput.equals("END"))
+            {
+                System.out.println("Thanks for playing, goodbye.");
+                endProgram = true; // end the program
+            }
         }
     }
-    
     /**
      * Start the race
      * The horse are brought to the start and
@@ -124,15 +232,14 @@ public class Race
      */
     public void startRace()
     {
-        //declare a local variable to tell us when the race is finished
         boolean finished = false;
-        
+            
         // reset all the lanes.
         for (int i = 0; i < currentHorses.size(); i++)
         {
-           currentHorses.get(i).goBackToStart();
+        currentHorses.get(i).goBackToStart();
         }
-                      
+                    
         while (!finished)
         {
             //move each horse
@@ -152,7 +259,7 @@ public class Race
                     finished = true;
                 }
             }
-           
+        
             if (remainingHorses == 0) // check if all horses have fallen, if so then end the race early.
             {
                 finished = true;
@@ -164,6 +271,7 @@ public class Race
             }catch(Exception e){}
         }
     }
+
     
     /**
      * Randomly make a horse move forward or fall depending
