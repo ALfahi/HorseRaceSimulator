@@ -30,9 +30,9 @@ public class Race
      */
     public Race()
     {
-        raceLength = 30
+        raceLength = 30;
         lane = new ArrayList<Horse>();
-        currentHorses = new ArrayList<Horse>()
+        currentHorses = new ArrayList<Horse>();
     }
     /**********race set up **************/
 
@@ -40,7 +40,7 @@ public class Race
     // This funcrion just initialises the lane attribute with nulls, it gets passed in an integer ( > 2) where it 
     // then creates that many lanes
     //
-    public void initialiseLanes(int numberOfLanes)
+    private void initialiseLanes(int numberOfLanes)
     {
         for (int i = 0; i < numberOfLanes; i++)
         {
@@ -50,7 +50,7 @@ public class Race
 
     // this methods resets the attrbute for a fresh new race
     //
-    public void resetRace()
+    private void resetRace()
     {
         this.lane = new ArrayList<Horse>();
         this.currentHorses = new ArrayList<Horse>();
@@ -61,7 +61,7 @@ public class Race
 
     // This function is used intialise the race with the number of lanes and alos the race length:
     //
-    public void intitialiseRace()
+    private void intitialiseRace()
     {
         final int MAXRACELENGTH = 100;
         final int MINRACELENGTH = 10;
@@ -79,7 +79,7 @@ public class Race
      */
     // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     //
-    public void addHorse(Horse theHorse, int laneNumber)
+    private void addHorse(Horse theHorse, int laneNumber)
     {
        
         lane.set(laneNumber - 1, theHorse); // add the horse to the lane
@@ -139,7 +139,7 @@ public class Race
      // checks if the passed in symbol is already in use by another horse.
     // if it is, then return false, otherwise return true.
     //
-    public boolean isUniqueHorse(char symbol)
+    private boolean isUniqueHorse(char symbol)
     {
         for (int i = 0; i < currentHorses.size(); i++)
         {
@@ -155,7 +155,7 @@ public class Race
      // this functions allows user to create a horse if the lanes are not full, uses the addHorse function to update both the lane
     // and currentHorses arrayLists.
     //
-    public void createValidHorse()
+    private void createValidHorse()
     {
         int laneLength = lane.size();
         if (isLaneFull())
@@ -181,14 +181,14 @@ public class Race
     /************** User validation **********/
     // checks if the lane is empty or not.
     //
-    public boolean isLaneEmpty(int laneNumber)
+    private boolean isLaneEmpty(int laneNumber)
     {
         return (lane.get(laneNumber - 1) == null);// check if the lane is empty
     }
 
     // checks if the lane is full or not. Returns boolean
     //
-    public boolean isLaneFull()
+    private boolean isLaneFull()
     {
         return (lane.size() == currentHorses.size());// check if all lanes are full (e.g. number of horses are the same as number of lanes)
 
@@ -198,7 +198,7 @@ public class Race
     // this function makes sure that the user types in a valid Horse symbol before the program moves on
     // returns the valid symbol
     //
-    public  char getValidHorseSymbol(String message) 
+    private  char getValidHorseSymbol(String message) 
     {
         String input;
         input = helperFunctions.getInput(message);
@@ -220,7 +220,7 @@ public class Race
     //This function makes sure that the user types in a valid horse name before the program moves on,
     // returns the valid name
     //
-    public static String getValidHorseName(String message) // mabye extend this to prevent duplicate names.
+    private static String getValidHorseName(String message) // mabye extend this to prevent duplicate names.
     {
         String input = "";
         while (input.trim() == "") // name must be a non empty string.
@@ -233,7 +233,7 @@ public class Race
     // makes sure user inputs in a valid confidence value during initial set up of horse
     // returns a double value representing the valid confidence
     //
-    public static double getValidHorseConfidence(String message)
+    private static double getValidHorseConfidence(String message)
     {
         double horseConfidence = -1.0;
         while (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is valid
@@ -258,7 +258,7 @@ public class Race
     // precondition: lanes are not full
     // retuns an integer representing the lane number.
     //
-    public  int getValidLaneNumber(String message)
+    private  int getValidLaneNumber(String message)
     {
         int laneNumber = -1;
         int laneLength = lane.size();
@@ -312,7 +312,7 @@ public class Race
      * then repeatedly moved forward until the 
      * race is finished
      */
-    public void startRace()
+    private void startRace()
     {
         boolean finished = false;
             
@@ -333,12 +333,14 @@ public class Race
             //print the race positions
             printRace();
             
-            //if any of the three horses has won the race is finished
+            //if any of the horses has won the race is finished
             for (int i = 0; i < currentHorses.size(); i++)
             {
                 if(raceWonBy(currentHorses.get(i)))
                 {
                     finished = true;
+                    Horse winner =currentHorses.get(i);
+                    winner.setConfidence(winner.getConfidence() * 1.2);
                 }
             }
         
@@ -357,7 +359,7 @@ public class Race
     
     // This function handles the main user actions which relates to an indivisual race (e.g. add horse, replay race, end program etc)
     //
-    public String handleIndivisualRace()
+    private String handleIndivisualRace()
     {
         String userInput = "";
         String  initialChoices= "do you want to add a horse (ADD), start the race (START), create a new race (NEW) or end the program (END)? ";
@@ -459,7 +461,7 @@ public class Race
 
     // method to print an empty lane.
     //
-    public void printEmptyLane()
+    private void printEmptyLane()
     {
         System.out.print("|");
         multiplePrint(' ', raceLength);
