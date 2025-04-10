@@ -1,6 +1,6 @@
 class HorseRaceSimulator{
     public static void main(String[] args) {
-       Race race = new Race(30);
+       Race race = new Race();
        race.mainGameLoop();
     }
 }

@@ -39,4 +39,24 @@ public class helperFunctions {
         return input;
     }
 
+    // this function forces the user to type in a valid integer within the bounds specified by the parameters.
+    // returns an integer (that's within the passed in bounds.)
+    //
+    public static int getValidInteger(String message, int lowerBound, int upperBound)
+    {
+        int userInput = 0;
+        while(userInput < lowerBound || userInput > upperBound)
+        {
+            try{
+                 userInput = Integer.parseInt(getInput(message));
+
+            }catch(NumberFormatException e)
+            {
+                System.out.println("please enter an integer");
+                userInput = 0;
+            }
+        }
+        return userInput;
+    }
+
 }
