@@ -1,4 +1,4 @@
-import java.util.Scanner;
+
 
 /**
  * This class holds some helper functions which are used by the Horse clas and Race class for this program to work, 
@@ -8,6 +8,8 @@ import java.util.Scanner;
  * @version 1.1 11/4/2025
  * - added a function to return a string representing a decimal number to n places.
  */
+
+import java.util.Scanner;
 
 public class HelperFunctions {
     // constructor to create an instance of this function:
@@ -75,6 +77,7 @@ public class HelperFunctions {
     }
 
     // this function displays a decimal number to n decimal places.
+    //
     public static String displayNDecimalPlaces(int decimalPlace, double number)
     {
         String formattedString = "%." +  decimalPlace + "f";

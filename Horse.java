@@ -133,7 +133,7 @@ public class Horse
     //
     public void printStats()
     {
-        String formattedConfidenceString = helperFunctions.displayNDecimalPlaces(2, this.getConfidence());// display confidence to 2dp
+        String formattedConfidenceString = HelperFunctions.displayNDecimalPlaces(2, this.getConfidence());// display confidence to 2dp
         System.out.println(this.getName() + "( current confidence " + formattedConfidenceString + ")");
     }
 }

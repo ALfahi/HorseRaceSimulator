@@ -7,9 +7,9 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.8 10/4/2025
+ * @version 1.9 10/4/2025
  * 
- * - created some functions to perform certain actions on all horses easily e.g. moveAllHorses() or resetDistanceAllHorses().
+ * - when a horse is eliminated it now displays 'X', rather than the placeholder due to unsupported unicode characters.
  *
  */
 public class Race
@@ -64,8 +64,8 @@ public class Race
         final int MAXRACELENGTH = 100;
         final int MINRACELENGTH = 10;
 
-        initialiseLanes(helperFunctions.getValidInteger("please enter the amount of lanes that you want (minimum 2, max 20)", 2, MAXLANES));
-        this.raceLength = helperFunctions.getValidInteger("please enter in the race length as an integer (min 10, max 100)", MINRACELENGTH, MAXRACELENGTH);
+        initialiseLanes(HelperFunctions.getValidInteger("please enter the amount of lanes that you want (minimum 2, max 20)", 2, MAXLANES));
+        this.raceLength = HelperFunctions.getValidInteger("please enter in the race length as an integer (min 10, max 100)", MINRACELENGTH, MAXRACELENGTH);
     }
     //********** Horse management ************/
 
@@ -243,18 +243,22 @@ public class Race
     private  char getValidHorseSymbol(String message) 
     {
         String input;
-        input = helperFunctions.getInput(message);
-        while (input.length() != 1 || !isUniqueHorse(input.charAt(0)))// check if the symbol is valid
+        input = HelperFunctions.getInput(message);
+        while (input.length() != 1 || !isUniqueHorse(input.charAt(0)) || input.equals("X"))// check if the symbol is valid
         {
             if (input.length() != 1) // check if the input is a single character
             {
                 System.out.println("Please enter a single character.");
             }
+            else if (input.equals("X"))
+            {
+                System.out.println("Sorry but this character is reserved for a special purpose");
+            }
             else
             {
                 System.out.println("sorry but this symbol is already in use. Please choose another symbol.");
             }
-            input = helperFunctions.getInput(message);
+            input = HelperFunctions.getInput(message);
         }
         return input.charAt(0); // return the valid character
     }
@@ -267,7 +271,7 @@ public class Race
         String input = "";
         while (input.trim() == "") // name must be a non empty string.
         {
-            input = helperFunctions.getInput(message);
+            input = HelperFunctions.getInput(message);
         }
         return input; // return the valid name
     }
@@ -281,7 +285,7 @@ public class Race
         while (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is valid
         {
             try{
-                horseConfidence = Double.parseDouble(helperFunctions.getInput(message)); // get the horse confidence from the user
+                horseConfidence = Double.parseDouble(HelperFunctions.getInput(message)); // get the horse confidence from the user
             }catch(NumberFormatException e)
             {
                 System.out.println("Please enter a number between 0 and 1, as a decimal");
@@ -307,7 +311,7 @@ public class Race
         while (laneNumber < 1 || laneNumber > laneLength) // check if the lane number is valid
         {
             try{
-                laneNumber = Integer.parseInt(helperFunctions.getInput(message)); // get the lane number from the user
+                laneNumber = Integer.parseInt(HelperFunctions.getInput(message)); // get the lane number from the user
             }catch(NumberFormatException e)
             {
                 System.out.println(message);
@@ -393,7 +397,7 @@ public class Race
         intitialiseRace();
         while (!userInput.equals("END") && !userInput.equals("NEW"))
         {
-            userInput = helperFunctions.getValidInput(initialChoices, new String[]{"ADD", "START", "NEW", "END"}); // get the user input from the user
+            userInput = HelperFunctions.getValidInput(initialChoices, new String[]{"ADD", "START", "NEW", "END"}); // get the user input from the user
             if (userInput.equals("ADD"))
             {
                 createValidHorse();
@@ -408,7 +412,7 @@ public class Race
                 {
                     startRace();
                     // either ask if you would like to start a new race or end the program. or continue with old race.
-                    userInput = helperFunctions.getValidInput(postRaceChoices, new String[]{"CONTINUE", "END", "NEW"});// add a option to start a new race from scratch.
+                    userInput = HelperFunctions.getValidInput(postRaceChoices, new String[]{"CONTINUE", "END", "NEW"});// add a option to start a new race from scratch.
                 }
             }
         }
@@ -471,7 +475,7 @@ public class Race
         //else print the horse's symbol
         if(theHorse.hasFallen())
         {
-            System.out.print("\u274C");// wrong symbols
+            System.out.print("X");// symbol to depict that horse has fallen over.
         }
         else
         {
