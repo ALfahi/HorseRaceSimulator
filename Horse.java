@@ -11,7 +11,8 @@
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.2 10/4/2025
+ * @version 1.3 10/4/2025
+ * - added in an extra function to display the horses stats (it's name and confidence)
  */
 public class Horse
 {
@@ -126,5 +127,13 @@ public class Horse
     {
         this.distanceTravelled = 0;
         this.hasFallen = false;
+    }
+
+    // method to print out the horse stats and name
+    //
+    public void printStats()
+    {
+        String formattedConfidenceString = helperFunctions.displayNDecimalPlaces(2, this.getConfidence());// display confidence to 2dp
+        System.out.println(this.getName() + "( current confidence " + formattedConfidenceString + ")");
     }
 }

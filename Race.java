@@ -179,6 +179,7 @@ public class Race
 
     // This method goes through all the active horses and then makes them go back to start, also resetting their 
     // hasFallen attributes back to false.
+    // also make remainingHorses be the size of the currentHorses arrayList again
     //
     private void resetDistanceAllHorses()
     {
@@ -186,6 +187,7 @@ public class Race
         {
             currentHorses.get(i).goBackToStart();
         }
+        remainingHorses = currentHorses.size();
     }
 
     // goes through all active horses and moves them
@@ -446,7 +448,9 @@ public class Race
      * to show how far the horse has run
      */
     private void printLane(Horse theHorse)
-    {   if (theHorse == null) // check if the lane is empty
+    {   
+        final int MARGINFORSTATS = 30;
+        if (theHorse == null) // check if the lane is empty
         {
             printEmptyLane(); // print empty lane
             return; 
@@ -479,8 +483,10 @@ public class Race
         
         //print the | for the end of the track
         System.out.print('|');
+        multiplePrint(' ', MARGINFORSTATS);// give consistent spacing between lane and stats.
+        theHorse.printStats();// print out name and confidence of the horse.
+        
     }
-
 
     // method to print an empty lane.
     //
