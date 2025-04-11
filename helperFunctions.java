@@ -9,7 +9,13 @@ import java.util.Scanner;
  * - added a function to return a string representing a decimal number to n places.
  */
 
-public class helperFunctions {
+public class HelperFunctions {
+    // constructor to create an instance of this function:
+    //
+    public HelperFunctions()
+    {
+        
+    }
     // method to get an input from the user, returns a String
     //
     public static String getInput(String message) 
