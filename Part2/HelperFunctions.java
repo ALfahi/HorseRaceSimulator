@@ -1,6 +1,4 @@
-package Part1;
-
-
+package Part2;
 /**
  * This class holds some helper functions which are used by the Horse clas and Race class for this program to work, 
  * it offers many general functions which can also be used outside of this program.

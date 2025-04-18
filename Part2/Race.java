@@ -1,4 +1,4 @@
-package Part1;
+package Part2;
 import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 import java.util.List;
@@ -339,7 +339,7 @@ public class Race
     // This is the main loop and entry point of the program, user can start races, add horses and end the program from here
     // they can also start races from scratch.
     //
-    public void startRace()
+    public void startRaceGUI()
     {
         String userInput = "";
         while (!userInput.equals("END"))
