@@ -78,7 +78,7 @@ public class HelperFunctions {
 
     // this function displays a decimal number to n decimal places.
     //
-    public static String displayNDecimalPlaces(int decimalPlace, double number)
+    public static String displayNDecimalPlaces(double number, int decimalPlace)
     {
         String formattedString = "%." +  decimalPlace + "f";
         return String.format(formattedString, number);
