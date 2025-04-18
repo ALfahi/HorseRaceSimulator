@@ -1,4 +1,4 @@
-
+package Part1;
 /**
  * This is the Horse class, horses are instantiated from this class, they have the follwoing attributes:
  * - name: the horse's name
