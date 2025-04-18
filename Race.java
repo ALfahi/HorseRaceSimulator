@@ -338,7 +338,7 @@ public class Race
     // This is the main loop and entry point of the program, user can start races, add horses and end the program from here
     // they can also start races from scratch.
     //
-    public void mainGameLoop()
+    public void startRace()
     {
         String userInput = "";
         while (!userInput.equals("END"))
@@ -358,7 +358,7 @@ public class Race
      * then repeatedly moved forward until the 
      * race is finished
      */
-    private void startRace()
+    private void launchRace()
     {
         boolean finished = false;
 
@@ -410,7 +410,7 @@ public class Race
                 }
                 else
                 {
-                    startRace();
+                    launchRace();
                     // either ask if you would like to start a new race or end the program. or continue with old race.
                     userInput = HelperFunctions.getValidInput(postRaceChoices, new String[]{"CONTINUE", "END", "NEW"});// add a option to start a new race from scratch.
                 }
