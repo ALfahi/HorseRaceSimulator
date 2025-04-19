@@ -12,7 +12,8 @@ import java.io.*;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.0 18/04/2025
+ * @version 1.1 18/04/2025
+ * - used cardContainer and cardLayout to effieciently switch between pages.
  */
 public class RaceGUI 
 {
@@ -30,19 +31,36 @@ public class RaceGUI
         this.screen.setVisible(true);
         // closes application once user closes the window.
         this.screen.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // creating the main panel which will be used to swap between the different screens:
+        CardLayout cardLayout = new CardLayout();
+        JPanel cardContainer = new JPanel(cardLayout);
+
         // general button template for all menu buttons in this application
         ButtonTemplate menuButtonTemplate = new ButtonTemplate(150, 200,  "#2E86C1",
          "#FFFFFF", "Arial", 16, Font.BOLD );
 
-         // start screen panel
+
+        // start screen panel
         Button startButton = new Button("start", menuButtonTemplate);
+        startButton.addPanelSwitchAction(cardLayout, cardContainer, "raceSetupScreen");
         Button[] startScreenButtons = {startButton};
-        JPanel startScreen = createPanel(startScreenButtons, new CardLayout(), Color.ORANGE);
+        JPanel startScreen = createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
+
+        // race set up screen
+        JPanel raceSetupScreen = createPanel(new Button[] {}, new FlowLayout(), Color.RED);
+
+
 
 
         // adding in all the panels to the frame/ screen.
         //
-        this.screen.add(startScreen);
+        this.screen.add(cardContainer);
+        cardContainer.add(startScreen, "startScreen");
+        cardContainer.add(raceSetupScreen, "raceSetupScreen");
+        
+        // show the starting screen:
+        cardLayout.show(cardContainer, "startScreen");
         
     }
 
