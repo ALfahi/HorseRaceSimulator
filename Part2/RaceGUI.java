@@ -14,12 +14,14 @@ import java.io.*;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.1 18/04/2025
- * - used cardContainer and cardLayout to effieciently switch between pages.
+ * @version 1.2 18/04/2025
+ * - added in extra action functions which will be used for the actionListeners for buttons.
+ * - added functionality of adding/ removing lanes.
  */
 public class RaceGUI 
 {
     private JFrame screen;
+    private static Race race;
     private static RaceGUI instance = null;
 
     //constructor method for this class, initialises the screen.
@@ -39,8 +41,8 @@ public class RaceGUI
         JPanel cardContainer = new JPanel(cardLayout);
 
         // general button template for all menu buttons in this application
-        ButtonTemplate menuButtonTemplate = new ButtonTemplate(150, 200,  "#2E86C1",
-         "#FFFFFF", "Arial", 16, Font.BOLD );
+        ButtonTemplate menuButtonTemplate = new ButtonTemplate(120, 200,  "#2E86C1",
+         "#FFFFFF", "Arial", 24, Font.BOLD );
 
 
         // start screen panel
@@ -50,11 +52,19 @@ public class RaceGUI
         JPanel startScreen = createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
 
         // race set up screen
-        Button addHorseButton = new Button("add Horse", menuButtonTemplate);
-        Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
-        Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50));
+      
 
-        Button[] raceSetupButtons = {plusButton, addHorseButton, minusButton};
+        Button addHorseButton = new Button("add Horse", menuButtonTemplate);
+        Button startRaceButton = new Button("start race", menuButtonTemplate );
+
+        Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
+        Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50), false);
+
+        // buttons will affect each other e.g. enabling the other button.
+        plusButton.addAction(e -> addLane(e, minusButton));
+        minusButton.addAction(e -> removeLane(e, plusButton));
+
+        Button[] raceSetupButtons = {plusButton, startRaceButton, addHorseButton, minusButton};
 
         JPanel raceSetupScreen = createPanel(raceSetupButtons, new FlowLayout(), Color.RED);
         JPanel displayLaneScreen = new JPanel();
@@ -99,8 +109,7 @@ public class RaceGUI
     //
     private static void start()
     {
-        Race race = new Race();
-        race.startRaceGUI();
+        race = new Race();
     }
     /******************************* some functions to help create the GUI aspect***********/
 
@@ -138,4 +147,50 @@ public class RaceGUI
         }
     }
 
+    /*********** button action methods ********/
+
+    // function to handle when the user wants to press a button to add lanes
+    //
+    private void addLane(ActionEvent e, Button minusButton) 
+    {
+        JButton button = (JButton) e.getSource(); // this just gets the button which called the function
+    
+        if (!race.exceedsMaxLanes()) 
+        {
+            race.addLane();
+            System.out.println("number of lanes is " + race.getTotalLanes());
+            if (!minusButton.isEnabled())// if minus button was disabled before, we added in an extra lane which can be deleted
+            // there enable button again.
+            {
+                minusButton.setEnabled(true);
+            }
+        } 
+        else 
+        {
+            System.out.println("Max lanes reached.");
+            button.setEnabled(false);
+        }
+    }
+
+    // function to handle when the user wants to click a button to remove a lane
+    //
+    private void removeLane(ActionEvent e, Button plusButton)
+    {
+        JButton button = (JButton) e.getSource();
+        if (race.overMinimumLanes())
+        {
+            race.removeLane();
+            System.out.println("number of lanes is " + race.getTotalLanes());
+            if(!plusButton.isEnabled())
+            {
+                plusButton.setEnabled(true);
+            }
+            // edge case if we were at 3 lanes before this function call, disable it now again
+            //
+            if (race.getTotalLanes() <= 2)
+            {
+                button.setEnabled(false);
+            }
+        }
+    }
 }

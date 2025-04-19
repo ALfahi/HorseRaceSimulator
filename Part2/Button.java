@@ -6,47 +6,77 @@ import java.awt.event.*;
 
 /**
  * This is the Button class, it's used to create multiple buttons very efficiently.
- *  Below are the attributes:
- * - text: the text on the button
- * - template: This is the template of the button, all styling will be copied over from the template into this button.
- * - action: what event/ action will be triggered when the button is clicked.
+ *  Below are the arguements:
+ * - JButton: the actual JButton that the wrapper class is built upon;
  * 
  * @author Fahi Sabab, Al
- * @version 1.2 19/04/2025
- * - Button class can now handle Icons, it now supprts icons which can act as buttons.
+ * @version 1.3 19/04/2025
+ * - Added in extra consturctors to specify if button should be enabled/ disabled when first created.
  */
-public class Button {
+public class Button 
+{
     private JButton button;
+    private boolean enabled = true;
 
-    public Button(String text, ButtonTemplate template, ActionListener action)
-    {
+    /********constructors for this class */
+    // text: the text displayed on the button
+    // template: the template which this button will get it's styling from
+    // action: what action the button will perform when clicked
+    // enabled: whether the button starts out as enabled or disabled.
+    //icon: the button can also be represented as an image/ icon.
+
+
+    public Button(String text, ButtonTemplate template, ActionListener action) {
         button = new JButton(text);
         applyStyles(template);
         button.addActionListener(action);
-
     }
 
-    public Button(String text, ButtonTemplate template)
-    {
+    public Button(String text, ButtonTemplate template, ActionListener action, boolean enabled) {
+        button = new JButton(text);
+        applyStyles(template);
+        button.addActionListener(action);
+        setEnabled(enabled);
+    }
+
+    public Button(String text, ButtonTemplate template) {
         button = new JButton(text);
         applyStyles(template);
     }
-    
-    public Button(ImageIcon icon, ActionListener action)
-    {
+
+    public Button(String text, ButtonTemplate template, boolean enabled) {
+        button = new JButton(text);
+        applyStyles(template);
+        setEnabled(enabled);
+    }
+
+    public Button(ImageIcon icon, ActionListener action) {
         button = new JButton(icon);
         // Set the preferred size of the button based on the icon size
         button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
-
         button.addActionListener(action);
     }
-    public Button(ImageIcon icon)
-    {
-        button = new JButton(icon);
 
-        // Set the preferred size of the button based on the icon size, so that the icon fits perfeclty inside the button.
-       button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+    public Button(ImageIcon icon, ActionListener action, boolean enabled) {
+        button = new JButton(icon);
+        button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+        button.addActionListener(action);
+        setEnabled(enabled);
     }
+
+    public Button(ImageIcon icon) {
+        button = new JButton(icon);
+        // Set the preferred size of the button based on the icon size, so that the icon fits perfeclty inside the button.
+        button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+    }
+
+    public Button(ImageIcon icon, boolean enabled) {
+        button = new JButton(icon);
+        button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+        setEnabled(enabled);
+    }
+
+    /********************other functions for this class *************/
 
     // This function copies over the styles from the template to the button:
     //
@@ -63,7 +93,31 @@ public class Button {
         button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
         button.setFocusPainted(false);
     }
-    
+
+     // used to efficiecntly make buttons have the action to swap between one panel to another.
+    //
+    public void addPanelSwitchAction(CardLayout layout, JPanel screen, String newPanel)
+    {
+        button.addActionListener(e -> {
+            layout.show(screen, newPanel);
+        });
+    }
+
+    public void addAction(ActionListener action)
+    {
+        button.addActionListener(action);
+    }
+    /**********creating setters */
+
+    //this function just enabled and disables the button
+    //
+    public void setEnabled(boolean enabled)
+    {
+        button.setEnabled(enabled);
+    }
+    /*****************getters  */
+
+
     // returns the JButton version to the program
     //
     public JButton getJButton()
@@ -71,12 +125,10 @@ public class Button {
         return button;
     }
 
-    // used to efficiecntly make buttons have the action to swap between one panel to another.
+    // returns whether the current button is enabled or disabled, returns boolean
     //
-    public void addPanelSwitchAction(CardLayout layout, JPanel screen, String newPanel)
+    public boolean isEnabled()
     {
-        button.addActionListener(e -> {
-            layout.show(screen, newPanel);
-        });
+        return button.isEnabled();
     }
 }
