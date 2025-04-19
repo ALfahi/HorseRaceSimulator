@@ -1,7 +1,9 @@
 package Part2;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 
 /**
@@ -48,7 +50,15 @@ public class RaceGUI
         JPanel startScreen = createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
 
         // race set up screen
-        JPanel raceSetupScreen = createPanel(new Button[] {}, new FlowLayout(), Color.RED);
+        Button addHorseButton = new Button("add Horse", menuButtonTemplate);
+        Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
+        Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50));
+
+        Button[] raceSetupButtons = {plusButton, addHorseButton, minusButton};
+
+        JPanel raceSetupScreen = createPanel(raceSetupButtons, new FlowLayout(), Color.RED);
+        JPanel displayLaneScreen = new JPanel();
+        raceSetupScreen.add(displayLaneScreen);
 
 
 
@@ -73,6 +83,8 @@ public class RaceGUI
         if (instance == null)
         {
             instance = new RaceGUI();
+            System.out.println("Current Working Directory: " + System.getProperty("user.dir"));
+
             start();
 
         }
@@ -104,8 +116,26 @@ public class RaceGUI
         // add in the buttons
         for (int i = 0; i < buttons.length; i ++)
         {
-            panel.add(buttons[i].convertToJButton());
+            panel.add(buttons[i].getJButton());
         }
         return panel;
     }
+
+    // this allows us to make icons into buttons
+    //
+     private ImageIcon scaleIcon(String filePath, int width, int height) 
+     {
+        try 
+        {
+            BufferedImage originalImage = ImageIO.read(new File(filePath));
+            Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
+        } 
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 }

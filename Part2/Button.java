@@ -12,8 +12,8 @@ import java.awt.event.*;
  * - action: what event/ action will be triggered when the button is clicked.
  * 
  * @author Fahi Sabab, Al
- * @version 1.1 18/04/2025
- * - added in a function to make buttons link to other pages/ panels easier.
+ * @version 1.2 19/04/2025
+ * - Button class can now handle Icons, it now supprts icons which can act as buttons.
  */
 public class Button {
     private JButton button;
@@ -31,6 +31,22 @@ public class Button {
         button = new JButton(text);
         applyStyles(template);
     }
+    
+    public Button(ImageIcon icon, ActionListener action)
+    {
+        button = new JButton(icon);
+        // Set the preferred size of the button based on the icon size
+        button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+
+        button.addActionListener(action);
+    }
+    public Button(ImageIcon icon)
+    {
+        button = new JButton(icon);
+
+        // Set the preferred size of the button based on the icon size, so that the icon fits perfeclty inside the button.
+       button.setPreferredSize(new Dimension(icon.getIconWidth(), icon.getIconHeight()));
+    }
 
     // This function copies over the styles from the template to the button:
     //
@@ -43,14 +59,14 @@ public class Button {
 
         // code to show the button's border properly:
         button.setOpaque(true);
-        button.setContentAreaFilled(true); // 👈 This shows background color again
+        button.setContentAreaFilled(true);
         button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
         button.setFocusPainted(false);
     }
     
     // returns the JButton version to the program
     //
-    public JButton convertToJButton()
+    public JButton getJButton()
     {
         return button;
     }
