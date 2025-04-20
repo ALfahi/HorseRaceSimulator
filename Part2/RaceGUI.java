@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.ArrayList;
 
 /**
  * This is the RaceGUI class, it will provide a GUI interface for the user for the horse race simulation.
@@ -14,14 +15,14 @@ import java.io.*;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.2 18/04/2025
- * - added in extra action functions which will be used for the actionListeners for buttons.
- * - added functionality of adding/ removing lanes.
+ * @version 1.3 20/04/2025
+ * - lanes can now be displayed.
  */
 public class RaceGUI 
 {
     private JFrame screen;
     private static Race race;
+    private static JPanel track = new JPanel();
     private static RaceGUI instance = null;
 
     //constructor method for this class, initialises the screen.
@@ -51,9 +52,8 @@ public class RaceGUI
         Button[] startScreenButtons = {startButton};
         JPanel startScreen = createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
 
-        // race set up screen
-      
 
+        // race set up screen
         Button addHorseButton = new Button("add Horse", menuButtonTemplate);
         Button startRaceButton = new Button("start race", menuButtonTemplate );
 
@@ -67,8 +67,10 @@ public class RaceGUI
         Button[] raceSetupButtons = {plusButton, startRaceButton, addHorseButton, minusButton};
 
         JPanel raceSetupScreen = createPanel(raceSetupButtons, new FlowLayout(), Color.RED);
-        JPanel displayLaneScreen = new JPanel();
-        raceSetupScreen.add(displayLaneScreen);
+
+        JScrollPane scrollableTrack= new JScrollPane(track);
+        track.setLayout(new BoxLayout(track, BoxLayout.Y_AXIS));// stack each of the lanes vertically
+        raceSetupScreen.add(scrollableTrack);
 
 
 
@@ -109,7 +111,10 @@ public class RaceGUI
     //
     private static void start()
     {
+        final int MINIMUMLANES = 2;
         race = new Race();
+        race.initialiseLanes(MINIMUMLANES);
+        initialiseTrack(MINIMUMLANES);
     }
     /******************************* some functions to help create the GUI aspect***********/
 
@@ -146,7 +151,6 @@ public class RaceGUI
             return null;
         }
     }
-
     /*********** button action methods ********/
 
     // function to handle when the user wants to press a button to add lanes
@@ -158,6 +162,10 @@ public class RaceGUI
         if (!race.exceedsMaxLanes()) 
         {
             race.addLane();
+            Lane lane = new Lane(1, 100);// testing values.
+            track.add(lane.getLane());
+            updateTrack();
+
             System.out.println("number of lanes is " + race.getTotalLanes());
             if (!minusButton.isEnabled())// if minus button was disabled before, we added in an extra lane which can be deleted
             // there enable button again.
@@ -180,6 +188,10 @@ public class RaceGUI
         if (race.overMinimumLanes())
         {
             race.removeLane();
+            // remove the last lane from the track:
+            track.remove(track.getComponent(race.getTotalLanes() - 1));
+            updateTrack();
+
             System.out.println("number of lanes is " + race.getTotalLanes());
             if(!plusButton.isEnabled())
             {
@@ -192,5 +204,23 @@ public class RaceGUI
                 button.setEnabled(false);
             }
         }
+    }
+
+    /*********functions to update GUI */
+
+    private static void initialiseTrack(int totalLanes)
+    {
+        for (int i = 0; i < totalLanes; i++)
+        {
+            track.add(new Lane(1, 100).getLane());
+
+        }
+        updateTrack();
+    }
+    private static void updateTrack()
+    {
+        // Revalidate and repaint the track panel to update the display
+        track.revalidate();
+        track.repaint();
     }
 }

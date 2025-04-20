@@ -8,17 +8,17 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.10 10/4/2025
+ * @version 1.11 10/4/2025
  * 
- * - removed all the unnecessary methods which won't be used for this GUI version
- * - added in some public validation methods.
+ * - changed the lanes arrayList to be an arrayList of type Lane instead of Horse.
+ * - changed some of the logic of methods to incoproate the new arrayList of type Lane.
  *
  */
 public class Race
 {
-    private int raceLength;// default value
-    private List<Horse> lane;// use an arrayList to dynamically store the horses in the lanes.
-    private List<Horse> currentHorses;// store all the used horses.
+    private int raceLength = 30;// default value
+    private List<Lane> lanes = new ArrayList<>();// use an arrayList to dynamically store the current number of lanes.
+    private List<Horse> currentHorses = new ArrayList<>();// store all the used horses.
     private final int MAXLANES = 20;// maximum number of lanes that the program will allow
     private int remainingHorses = 0;
 
@@ -28,29 +28,22 @@ public class Race
      * 
      * @param distance the length of the racetrack (in metres/yards...)
      */
-    public Race()
+    public Race() 
     {
         raceLength = 30;
-        lane = new ArrayList<Horse>();
-        
-        // the race class must be initialised with 2 lanes
-        for (int i = 0; i < 2; i++)
-        {
-            lane.add(null);
-        }
-        currentHorses = new ArrayList<Horse>();
+        lanes = new ArrayList<>();
+        currentHorses = new ArrayList<>();
+        remainingHorses = 0;
     }
 
     /**********race set up **************/
-
-    // This funcrion just initialises the lane attribute with nulls, it gets passed in an integer ( > 2) where it 
-    // then creates that many lanes
+    // this function insitialies the track with empty lanes, number of lanes is passed in
     //
-    private void initialiseLanes(int numberOfLanes)
+    public void initialiseLanes(int numberOfLanes) 
     {
-        for (int i = 0; i < numberOfLanes; i++)
+        for (int i = 0; i < numberOfLanes; i++) 
         {
-            lane.add(null);
+            addLane();
         }
     }
 
@@ -58,8 +51,8 @@ public class Race
     //
     private void resetRace()
     {
-        this.lane = new ArrayList<Horse>();
-        this.currentHorses = new ArrayList<Horse>();
+        this.lanes = new ArrayList<>();
+        this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
         this.raceLength = 30;
     }
@@ -74,9 +67,9 @@ public class Race
      */
     // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     //
-    private void addHorse(Horse theHorse, int laneNumber)
+    public void addHorse(Horse theHorse, int laneNumber)
     {
-        lane.set(laneNumber - 1, theHorse); // add the horse to the lane
+        lanes.get(laneNumber).setHorse(theHorse); // add the horse to the lane
         currentHorses.add(theHorse); // add the horse to the list of  the current horses
         remainingHorses ++;
     }
@@ -186,14 +179,14 @@ public class Race
     //
     private boolean isLaneEmpty(int laneNumber)
     {
-        return (lane.get(laneNumber - 1) == null);
+        return (lanes.get(laneNumber - 1).getHorse() == null);
     }
 
     // checks if the lane is full or not. Returns boolean
     //
     private boolean isLaneFull()
     {
-        return (lane.size() == currentHorses.size());
+        return (lanes.size() == currentHorses.size());
     }
 
     // checks to see if the number of lanes is less than or equal to 2( can't have a race with fewer than 2 lanes)
@@ -201,14 +194,14 @@ public class Race
     //
     public boolean overMinimumLanes()
     {
-        return (lane.size() > 2);
+        return (lanes.size() > 2);
     }
 
     // check to see if number of lanes exceeds the maximum number of allowed lanes
     // returns boolean
     public boolean exceedsMaxLanes()
     {
-        return lane.size() >= MAXLANES;
+        return lanes.size() >= MAXLANES;
     }
 
     /************lane management ******/
@@ -218,7 +211,7 @@ public class Race
     //
     public void addLane()
     {
-        lane.add(null);
+        lanes.add(new Lane(lanes.size() + 1, raceLength));
     }
 
     //removes a lane in the race track
@@ -226,7 +219,7 @@ public class Race
     //
     public void removeLane()
     {
-        lane.remove(lane.size() -1);
+        lanes.remove(lanes.size() -1);
     }
 
     /******* functions to handle the main game loop */
@@ -266,6 +259,6 @@ public class Race
     //
     public int getTotalLanes()
     {
-        return lane.size();
+        return lanes.size();
     }
 }
