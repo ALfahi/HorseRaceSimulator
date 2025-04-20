@@ -261,4 +261,11 @@ public class Race
     {
         return lanes.size();
     }
+
+    // returns the maximum number of lanes for the race class
+    //
+    public int getMaxLanes()
+    {
+        return MAXLANES;
+    }
 }

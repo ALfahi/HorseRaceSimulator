@@ -16,12 +16,12 @@ import java.util.ArrayList;
  * 
  * @author Fahi Sabab, Al
  * @version 1.3 20/04/2025
- * - lanes can now be displayed.
+ * - each screen is inside it's own method for extra clairity and readability.
  */
 public class RaceGUI 
 {
     private JFrame screen;
-    private static Race race;
+    private static Race race = new Race();
     private static JPanel track = new JPanel();
     private static RaceGUI instance = null;
 
@@ -46,33 +46,10 @@ public class RaceGUI
          "#FFFFFF", "Arial", 24, Font.BOLD );
 
 
-        // start screen panel
-        Button startButton = new Button("start", menuButtonTemplate);
-        startButton.addPanelSwitchAction(cardLayout, cardContainer, "raceSetupScreen");
-        Button[] startScreenButtons = {startButton};
-        JPanel startScreen = createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
-
-
-        // race set up screen
-        Button addHorseButton = new Button("add Horse", menuButtonTemplate);
-        Button startRaceButton = new Button("start race", menuButtonTemplate );
-
-        Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
-        Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50), false);
-
-        // buttons will affect each other e.g. enabling the other button.
-        plusButton.addAction(e -> addLane(e, minusButton));
-        minusButton.addAction(e -> removeLane(e, plusButton));
-
-        Button[] raceSetupButtons = {plusButton, startRaceButton, addHorseButton, minusButton};
-
-        JPanel raceSetupScreen = createPanel(raceSetupButtons, new FlowLayout(), Color.RED);
-
-        JScrollPane scrollableTrack= new JScrollPane(track);
-        track.setLayout(new BoxLayout(track, BoxLayout.Y_AXIS));// stack each of the lanes vertically
-        raceSetupScreen.add(scrollableTrack);
-
-
+        // creating all of the screens
+        JPanel startScreen = createStartScreen(cardLayout, cardContainer, menuButtonTemplate);
+        JPanel raceSetupScreen = createRaceSetupScreen(cardLayout, cardContainer, menuButtonTemplate);
+        JPanel editTrackScreen = createEditTrackScreen(cardLayout, cardContainer, menuButtonTemplate);
 
 
         // adding in all the panels to the frame/ screen.
@@ -80,6 +57,7 @@ public class RaceGUI
         this.screen.add(cardContainer);
         cardContainer.add(startScreen, "startScreen");
         cardContainer.add(raceSetupScreen, "raceSetupScreen");
+        cardContainer.add(editTrackScreen, "editTrackScreen");
         
         // show the starting screen:
         cardLayout.show(cardContainer, "startScreen");
@@ -112,7 +90,6 @@ public class RaceGUI
     private static void start()
     {
         final int MINIMUMLANES = 2;
-        race = new Race();
         race.initialiseLanes(MINIMUMLANES);
         initialiseTrack(MINIMUMLANES);
     }
@@ -222,5 +199,57 @@ public class RaceGUI
         // Revalidate and repaint the track panel to update the display
         track.revalidate();
         track.repaint();
+    }
+
+    /*****************  all the screens ***********/
+
+    // this will screate the start screen, returns the corresponding JPanel
+    //
+    private JPanel createStartScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
+    {
+        Button startButton = new Button("start", template);
+        startButton.addPanelSwitchAction(cardLayout, cardContainer, "raceSetupScreen");
+        Button[] startScreenButtons = {startButton};
+        return createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
+    }
+    
+    // this will screate the race set up screen, returns the corresponding JPanel
+    //
+    private JPanel createRaceSetupScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
+    {
+        Button addHorseButton = new Button("add Horse", template);
+        Button editTrackButton = new Button("edit race track", template);
+        editTrackButton.addPanelSwitchAction(cardLayout, cardContainer, "editTrackScreen");
+        Button startRaceButton = new Button("start race", template);
+    
+        Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton};
+        return createPanel(raceSetupButtons, new GridLayout(3, 1), Color.RED);
+    }
+    
+    // this will create the edit track screen, returns the corresponding JPanel
+    //
+    private JPanel createEditTrackScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
+    {
+        JLabel labelTotalTracks = new JLabel("please enter the total number of tracks (min2, max " + race.getMaxLanes() +")");
+        JTextField inputTotalTracks = new JTextField(2);
+
+        Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
+        Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50), false);
+    
+        plusButton.addAction(e -> addLane(e, minusButton));
+        minusButton.addAction(e -> removeLane(e, plusButton));
+    
+        Button[] editTrackButtons = {plusButton, minusButton};
+        JPanel editTrackScreen = createPanel(editTrackButtons, new FlowLayout(), Color.BLUE);
+    
+        track.setLayout(new BoxLayout(track, BoxLayout.Y_AXIS));
+        JScrollPane scrollableTrack = new JScrollPane(track);
+        editTrackScreen.add(labelTotalTracks);
+        editTrackScreen.add(inputTotalTracks);
+        editTrackScreen.add(scrollableTrack);
+
+
+    
+        return editTrackScreen;
     }
 }
