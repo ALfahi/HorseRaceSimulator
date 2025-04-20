@@ -8,10 +8,9 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.11 10/4/2025
+ * @version 1.12 10/4/2025
  * 
- * - changed the lanes arrayList to be an arrayList of type Lane instead of Horse.
- * - changed some of the logic of methods to incoproate the new arrayList of type Lane.
+ * - added in more getter and setters for the raceGUI to use.
  *
  */
 public class Race
@@ -20,6 +19,8 @@ public class Race
     private List<Lane> lanes = new ArrayList<>();// use an arrayList to dynamically store the current number of lanes.
     private List<Horse> currentHorses = new ArrayList<>();// store all the used horses.
     private final int MAXLANES = 20;// maximum number of lanes that the program will allow
+    private final int MAXDISTANCE = 30;
+    private final int  MINDISTANCE= 100;
     private int remainingHorses = 0;
 
     /**
@@ -41,6 +42,7 @@ public class Race
     //
     public void initialiseLanes(int numberOfLanes) 
     {
+        lanes = new ArrayList<>();// reset the lanes first.
         for (int i = 0; i < numberOfLanes; i++) 
         {
             addLane();
@@ -268,4 +270,34 @@ public class Race
     {
         return MAXLANES;
     }
+
+    // function to return the current race lenght of the track( returns an int)
+    //
+    public int getRaceLength()
+    {
+        return this.raceLength;
+    }
+    // this function returns an int representing minimum distance a track can be
+    //
+    public int getMaxDistance()
+    {
+        return MAXDISTANCE;
+    }
+
+    // this function returns an int representing the maximum distance a track can be
+    //
+    public int getMinDistance()
+    {
+        return MINDISTANCE;
+    }
+
+    /**************setter methods ************/
+    
+    // this function get's a distance and then set's the race's length to that distance.
+    //
+    public void setRaceLength(int distance)
+    {
+        this.raceLength = distance;
+    }
 }
+

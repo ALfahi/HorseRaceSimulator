@@ -4,8 +4,10 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeListener;
+import java.text.NumberFormat;
+import javax.swing.text.NumberFormatter;
 import java.io.*;
-import java.util.ArrayList;
 
 /**
  * This is the RaceGUI class, it will provide a GUI interface for the user for the horse race simulation.
@@ -15,8 +17,10 @@ import java.util.ArrayList;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.3 20/04/2025
- * - each screen is inside it's own method for extra clairity and readability.
+ * @version 1.4 20/04/2025
+ * - refactored interal createPanel() function to take in an array of Components instead (for better generalisation)
+ * - fully built the edit track screen with all the necessary logic
+ * - added in some new functions to help build the edit track screen.
  */
 public class RaceGUI 
 {
@@ -95,19 +99,28 @@ public class RaceGUI
     }
     /******************************* some functions to help create the GUI aspect***********/
 
-    // this function get's passed in the buttons that the panel will contain (if any), the layout it will be useing
+    // this function get's passed in some Swing components that the panel will contain (if any), the layout it will be useing
     // and it's background color to initialise and set up a JPanel, it will then return the panel.
+    // if background color is set to null, it will make the panel's background be transparent.
     //
-    private static JPanel createPanel(Button[] buttons, LayoutManager layout, Color color)
+    private static JPanel createPanel(Component[] components, LayoutManager layout, Color color)
     {
         JPanel panel = new JPanel();
         panel.setLayout(layout);
-        panel.setBackground(color);
 
-        // add in the buttons
-        for (int i = 0; i < buttons.length; i ++)
+        if (color!= null)
         {
-            panel.add(buttons[i].getJButton());
+            panel.setBackground(color);
+        }
+        else// make it transparent
+        {
+            panel.setOpaque(false);
+        }
+
+        // add in the components.
+        for (int i = 0; i < components.length; i ++)
+        {
+            panel.add(components[i]);
         }
         return panel;
     }
@@ -128,19 +141,45 @@ public class RaceGUI
             return null;
         }
     }
+
+    // this function is used to create a text field that only accepts integers in a given range.
+    //we can choose, if we want to add in some function/ logic if the value of the textField changes, if we pass in null
+    // for the action then this textField will not do any action.
+    //
+    private JFormattedTextField createIntegerTextField(int min, int max, PropertyChangeListener action)
+    {
+        // creating the actual foratter
+        NumberFormat format = NumberFormat.getIntegerInstance();
+        NumberFormatter formatter = new NumberFormatter(format);
+        formatter.setValueClass(Integer.class);
+        formatter.setMinimum(min);
+        formatter.setMaximum(max);
+        formatter.setAllowsInvalid(true);
+        formatter.setCommitsOnValidEdit(true);
+
+        JFormattedTextField textField = new JFormattedTextField(formatter);
+        textField.setText(String.valueOf(min));
+        textField.setColumns(3);// allow it to display 3 characters at a time
+        if (action != null)
+        {
+            textField.addPropertyChangeListener("value", action);
+        }
+        return textField;
+    }
     /*********** button action methods ********/
 
     // function to handle when the user wants to press a button to add lanes
     //
-    private void addLane(ActionEvent e, Button minusButton) 
+    private void addLane(ActionEvent e, Button minusButton, JTextField textField) 
     {
         JButton button = (JButton) e.getSource(); // this just gets the button which called the function
     
         if (!race.exceedsMaxLanes()) 
         {
             race.addLane();
-            Lane lane = new Lane(1, 100);// testing values.
+            Lane lane = new Lane(track.getComponentCount() + 1, race.getRaceLength());// testing values.
             track.add(lane.getLane());
+            textField.setText(String.valueOf(track.getComponentCount()));
             updateTrack();
 
             System.out.println("number of lanes is " + race.getTotalLanes());
@@ -159,7 +198,7 @@ public class RaceGUI
 
     // function to handle when the user wants to click a button to remove a lane
     //
-    private void removeLane(ActionEvent e, Button plusButton)
+    private void removeLane(ActionEvent e, Button plusButton, JTextField textField)
     {
         JButton button = (JButton) e.getSource();
         if (race.overMinimumLanes())
@@ -167,6 +206,7 @@ public class RaceGUI
             race.removeLane();
             // remove the last lane from the track:
             track.remove(track.getComponent(race.getTotalLanes() - 1));
+            textField.setText(String.valueOf(track.getComponentCount()));
             updateTrack();
 
             System.out.println("number of lanes is " + race.getTotalLanes());
@@ -183,6 +223,50 @@ public class RaceGUI
         }
     }
 
+    /***********text field action methods **********/
+
+    // this function  is used to update the lanes in real time as the value in the text field changes.
+    // returns a PropertyChangeListener instance,
+    //
+    private PropertyChangeListener updateLaneListener(Button plusButton, Button minusButton) {
+        PropertyChangeListener listener = event -> {
+            int newLaneCount = (int) ((JFormattedTextField) event.getSource()).getValue();
+            race.initialiseLanes(newLaneCount);
+            track.removeAll();// reset the track.
+            initialiseTrack(newLaneCount);
+
+            // enable/ disable the appropriate buttons when the user types in 20 or 2.
+            plusButton.setEnabled(track.getComponentCount() < race.getMaxLanes());
+            minusButton.setEnabled(track.getComponentCount() > 2);
+        };
+    
+        return listener;
+    }
+
+     // returns a PropertyChangeListener instance,
+    //
+    private PropertyChangeListener updateDistanceListener() {
+        PropertyChangeListener listener = event -> {
+            int newDistance = (int) ((JFormattedTextField) event.getSource()).getValue();
+            race.setRaceLength(newDistance);
+        };
+    
+        return listener;
+    }
+
+    // this function converts an array of Buttons[] into an array of JButtons[]
+    //
+    private JButton[] convertButtonArrayToJButtons(Button[] buttons)
+    {
+        JButton[] jButtons = new JButton[buttons.length];
+        for (int i = 0; i < buttons.length; i++)
+        {
+            jButtons[i] = buttons[i].getJButton();
+        }
+
+        return jButtons;
+    }
+   
     /*********functions to update GUI */
 
     private static void initialiseTrack(int totalLanes)
@@ -210,7 +294,7 @@ public class RaceGUI
         Button startButton = new Button("start", template);
         startButton.addPanelSwitchAction(cardLayout, cardContainer, "raceSetupScreen");
         Button[] startScreenButtons = {startButton};
-        return createPanel(startScreenButtons, new FlowLayout(), Color.ORANGE);
+        return createPanel(convertButtonArrayToJButtons(startScreenButtons), new FlowLayout(), Color.ORANGE);
     }
     
     // this will screate the race set up screen, returns the corresponding JPanel
@@ -223,33 +307,57 @@ public class RaceGUI
         Button startRaceButton = new Button("start race", template);
     
         Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton};
-        return createPanel(raceSetupButtons, new GridLayout(3, 1), Color.RED);
+        return createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1), Color.RED);
     }
     
     // this will create the edit track screen, returns the corresponding JPanel
     //
-    private JPanel createEditTrackScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
-    {
-        JLabel labelTotalTracks = new JLabel("please enter the total number of tracks (min2, max " + race.getMaxLanes() +")");
-        JTextField inputTotalTracks = new JTextField(2);
-
+    private JPanel createEditTrackScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) {
+        // Main panel with BorderLayout
+        JPanel editTrackScreen = createPanel(new Component[] {}, new BorderLayout(), Color.BLUE);
+    
+        // Track count form/ controls
+        JLabel trackCountLabel = new JLabel("Number of Tracks:");
         Button plusButton = new Button(scaleIcon("Part2/images/plusIcon.png", 50, 50));
         Button minusButton = new Button(scaleIcon("Part2/images/minusIcon.png", 50, 50), false);
+        JFormattedTextField trackInput = createIntegerTextField(2, race.getMaxLanes(), updateLaneListener(plusButton, minusButton));
+        plusButton.addAction(e -> addLane(e, minusButton, trackInput));
+        minusButton.addAction(e -> removeLane(e, plusButton, trackInput));
     
-        plusButton.addAction(e -> addLane(e, minusButton));
-        minusButton.addAction(e -> removeLane(e, plusButton));
+        JPanel trackCountPanel = createPanel(new Component[] {trackCountLabel, trackInput,plusButton.getJButton(), 
+                minusButton.getJButton()},new FlowLayout(), null);
     
-        Button[] editTrackButtons = {plusButton, minusButton};
-        JPanel editTrackScreen = createPanel(editTrackButtons, new FlowLayout(), Color.BLUE);
+        //  track length form/ controls
+        JLabel trackDistanceLabel = new JLabel("Track Length (max 100, min 30m):");
+        JFormattedTextField distanceInput = createIntegerTextField(30, 100, updateDistanceListener());
     
+        JPanel trackLengthPanel = createPanel(new Component[] {trackDistanceLabel, distanceInput},new FlowLayout(), null);
+    
+        // Combine both into one vertical section
+        JPanel controlsPanel = createPanel(new Component[] {trackLengthPanel, trackCountPanel},new GridLayout(2, 1), null);
+    
+        // place holder for track shape options
+        Button dummy1 = new Button("Dummy1", template);
+        Button dummy2 = new Button("Dummy2", template);
+        Button dummy3 = new Button("Dummy3", template);
+    
+        JPanel dummyButtons = createPanel(new Component[] {dummy1.getJButton(), dummy2.getJButton(), dummy3.getJButton()},new FlowLayout(), null);
+    
+        // Group all top elements
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.setOpaque(false);
+        topSection.add(controlsPanel, BorderLayout.NORTH);
+        topSection.add(dummyButtons, BorderLayout.CENTER);
+    
+        // scrollable track preview
         track.setLayout(new BoxLayout(track, BoxLayout.Y_AXIS));
         JScrollPane scrollableTrack = new JScrollPane(track);
-        editTrackScreen.add(labelTotalTracks);
-        editTrackScreen.add(inputTotalTracks);
-        editTrackScreen.add(scrollableTrack);
-
-
+        scrollableTrack.setPreferredSize(new Dimension(1200, 400));
+    
+        // Add to main layout
+        editTrackScreen.add(topSection, BorderLayout.NORTH);
+        editTrackScreen.add(scrollableTrack, BorderLayout.SOUTH);
     
         return editTrackScreen;
-    }
+    }    
 }
