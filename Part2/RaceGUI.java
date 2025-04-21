@@ -17,16 +17,14 @@ import java.io.*;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.4 20/04/2025
- * - refactored interal createPanel() function to take in an array of Components instead (for better generalisation)
- * - fully built the edit track screen with all the necessary logic
- * - added in some new functions to help build the edit track screen.
- */
+ * @version 1.5 21/04/2025
+ * - refactored internal logic to use the Track class instead of a raw JPanel.
+*/
 public class RaceGUI 
 {
     private JFrame screen;
     private static Race race = new Race();
-    private static JPanel track = new JPanel();
+    private static Track track = new Track();
     private static RaceGUI instance = null;
 
     //constructor method for this class, initialises the screen.
@@ -177,10 +175,8 @@ public class RaceGUI
         if (!race.exceedsMaxLanes()) 
         {
             race.addLane();
-            Lane lane = new Lane(track.getComponentCount() + 1, race.getRaceLength());// testing values.
-            track.add(lane.getLane());
-            textField.setText(String.valueOf(track.getComponentCount()));
-            updateTrack();
+            track.addLane(race.getRaceLength());
+            textField.setText(String.valueOf(track.getLaneCount()));
 
             System.out.println("number of lanes is " + race.getTotalLanes());
             if (!minusButton.isEnabled())// if minus button was disabled before, we added in an extra lane which can be deleted
@@ -205,9 +201,8 @@ public class RaceGUI
         {
             race.removeLane();
             // remove the last lane from the track:
-            track.remove(track.getComponent(race.getTotalLanes() - 1));
-            textField.setText(String.valueOf(track.getComponentCount()));
-            updateTrack();
+            track.removeLane();
+            textField.setText(String.valueOf(track.getLaneCount()));
 
             System.out.println("number of lanes is " + race.getTotalLanes());
             if(!plusButton.isEnabled())
@@ -232,12 +227,12 @@ public class RaceGUI
         PropertyChangeListener listener = event -> {
             int newLaneCount = (int) ((JFormattedTextField) event.getSource()).getValue();
             race.initialiseLanes(newLaneCount);
-            track.removeAll();// reset the track.
+            track.clear();// reset the track.
             initialiseTrack(newLaneCount);
 
             // enable/ disable the appropriate buttons when the user types in 20 or 2.
-            plusButton.setEnabled(track.getComponentCount() < race.getMaxLanes());
-            minusButton.setEnabled(track.getComponentCount() > 2);
+            plusButton.setEnabled(track.getLaneCount() < race.getMaxLanes());
+            minusButton.setEnabled(track.getLaneCount() > 2);
         };
     
         return listener;
@@ -253,6 +248,13 @@ public class RaceGUI
     
         return listener;
     }
+
+    /***********JComboBox action methods **********/
+    /*private void assignHorseToLane(int laneNumber, Horse horse)
+    {
+        track.get(laneNumber);// to do
+    }
+    */
 
     // this function converts an array of Buttons[] into an array of JButtons[]
     //
@@ -273,17 +275,11 @@ public class RaceGUI
     {
         for (int i = 0; i < totalLanes; i++)
         {
-            track.add(new Lane(1, 100).getLane());
+            track.addLane(race.getRaceLength());
 
         }
-        updateTrack();
     }
-    private static void updateTrack()
-    {
-        // Revalidate and repaint the track panel to update the display
-        track.revalidate();
-        track.repaint();
-    }
+
 
     /*****************  all the screens ***********/
 
@@ -350,8 +346,7 @@ public class RaceGUI
         topSection.add(dummyButtons, BorderLayout.CENTER);
     
         // scrollable track preview
-        track.setLayout(new BoxLayout(track, BoxLayout.Y_AXIS));
-        JScrollPane scrollableTrack = new JScrollPane(track);
+        JScrollPane scrollableTrack = new JScrollPane(track.getTrackPanel());
         scrollableTrack.setPreferredSize(new Dimension(1200, 400));
     
         // Add to main layout
@@ -360,4 +355,21 @@ public class RaceGUI
     
         return editTrackScreen;
     }    
+
+    /*private JPanel createAddHorseScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template)
+    {
+        // main panel that stores everything in this screen
+
+        JPanel addHorseScreen = createPanel(new Component[] {}, new BorderLayout(), Color.RED);
+        
+        JLabel horseNameLabel = new JLabel("Horse name:");
+        JTextField horseNameInput = new JTextField(18);// example column, tweak this later.
+
+        JLabel laneLabel = new JLabel("please pick one of the empty lanes");
+        Integer[] emptyLanes = race.getAllEmptyLanes();// convert this into a string in a later update.
+
+        JComboBox<Integer> availableLanes = new JComboBox<>(emptyLanes);
+
+
+    } */
 }
