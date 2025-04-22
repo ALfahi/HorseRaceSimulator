@@ -9,9 +9,14 @@ import java.awt.*;
  * - laneNumber: which lane this is, (used for visuals)
  * - horse: checks to see if the lane contains a horse or not
  * - lane: the actual JPanel which will be used to display the lane.
+ * - horseVisual: what the horse is displayed as to the screen (it's a JLabel)
+ * - trackCondition: what type of condition the track has.
  * 
  * @author Fahi Sabab, Al
- * @version 1.0 20/04/2025
+ * @version 1.1 20/04/2025
+ * 
+ * - now the lane displays an 'X' symbol when a horse has fallen, added padding to the lanes so that the 
+ *  horse can never overlap with the text.
  * 
  */
 public class Lane 
@@ -19,6 +24,7 @@ public class Lane
     int laneNumber;
     Horse horse = null;
     JPanel lane = new JPanel();
+    JLabel horseVisual = new JLabel();// this will move as the race goes along.
     private String trackCondition;
 
     // constructor for this class:
@@ -74,9 +80,10 @@ public class Lane
     //
     private void addHorseToLane()// for now it's a character
     {
-        JLabel horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
-        horseVisual.setBounds(20, 25, 40, 40);
-        lane.add(horseVisual);
+        this.horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
+        horseVisual.setBounds(15, 20, 40, 40);
+        lane.add(this.horseVisual);
+        updateHorseVisual();
         update();
     }
 
@@ -89,13 +96,40 @@ public class Lane
         
         // Set text color
         numberVisual.setForeground(Color.WHITE);
-        numberVisual.setBounds(5, 25, 40, 40);
+        numberVisual.setBounds(5, 20, 40, 40);
         lane.add(numberVisual);
 
         // update laneVisuals:
         update();
     }
 
+    // this function updates the horse's position in the lane:
+    //
+    public void updateHorseVisual()
+    {
+        final int SCALE = 20;
+        if (horse != null && horseVisual != null) 
+        {
+            int paddingLeft = (2 * SCALE);
+            int position = (horse.getDistanceTravelled() * SCALE) + paddingLeft; // scale: 1 step/ movement is 20px
+            horseVisual.setLocation(position, 10);
+            update();
+        }
+    }
+
+    public void resetHorseVisual()
+    {
+        this.horseVisual.setText(String.valueOf(horse.getBackUpSymbol()));
+    }
+
+    // this function shows the horse's death/ eliminated symbol to the screen.
+    //
+    public void showEliminatedHorse()
+    {
+        this.horseVisual.setText(String.valueOf(horse.getDeathSymbol()));
+    }
+
+    // This method will update the horse's position 
 
     // this sets the lane number attribute with a new lane number
     //

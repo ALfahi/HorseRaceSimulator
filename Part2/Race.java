@@ -1,5 +1,4 @@
 package Part2;
-import java.util.concurrent.TimeUnit;
 import java.lang.Math;
 import java.util.List;
 import java.util.ArrayList;
@@ -10,8 +9,10 @@ import java.util.ArrayList;
  * @author McRaceface, Fahi Sabab, Al
  * @version 1.13 10/4/2025
  * 
- * - refactored the initialiseLane and resetLanes functions, to not create a new arrayList from scratch (other wise it would
- * desync the lanes with the track class.)
+ * - added in some logic, so when a horse has fallne, it's respective lane will show an 'X' symbol instead of the horse's normal 
+ *   symbol.
+ * - when race get's reset, also reset all the horse visuals to their normal symbol.
+ * - removed the race.start() function, moved it to the raceGUI class, so that the horses moving can be seen in real time.
  *
  */
 public class Race
@@ -48,7 +49,7 @@ public class Race
 
     // this methods resets the attrbute for a fresh new race
     //
-    private void resetRace()
+    public void resetRace()
     {
         this.lanes.clear();
         initialiseLanes(2);
@@ -136,29 +137,48 @@ public class Race
     // hasFallen attributes back to false.
     // also make remainingHorses be the size of the currentHorses arrayList again
     //
-    private void resetDistanceAllHorses()
+    public void resetDistanceAllHorses()
     {
-        for (int i = 0; i < currentHorses.size(); i++)
+        for (int i = 0; i < lanes.size(); i++)
         {
-            currentHorses.get(i).goBackToStart();
+            Horse horse = lanes.get(i).getHorse();
+            if (horse != null)
+            {
+                horse.goBackToStart();
+                // reset the horse's visual to the normal horse symbol, and move it back to the start of the lane.
+                lanes.get(i).resetHorseVisual();
+                lanes.get(i).updateHorseVisual();
+            }
         }
         remainingHorses = currentHorses.size();
+        
     }
 
     // goes through all active horses and moves them
     //
-    private void moveAllHorses()
+    public void moveAllHorses()
     {
-        for (int i = 0; i< currentHorses.size(); i ++)
+        for (int i = 0; i< lanes.size(); i ++)
         {
-            moveHorse(currentHorses.get(i));
+            Horse horse = lanes.get(i).getHorse();
+            if (horse != null)
+            {
+                moveHorse(horse);
+                // if horse has fallen, make the visual be the 'X' emoji.
+                if (horse.hasFallen())
+                {
+                    lanes.get(i).showEliminatedHorse();
+                }
+                lanes.get(i).updateHorseVisual();
+
+            }
         }
     }
 
     // goes through all active horses and checks if any of them won, if yes, then output true, otherwise output false
     // returns boolean
     //
-    private boolean checkWin()
+    public boolean checkWin()
     {
         boolean win = false;
         for (int i = 0; i < currentHorses.size(); i++)
@@ -233,39 +253,16 @@ public class Race
         }
         lanes.remove(lanes.size() -1);
     }
-
-    /******* functions to handle the main game loop */
-
-    /**
-     * Start the race
-     * The horse are brought to the start and
-     * then repeatedly moved forward until the 
-     * race is finished
-     */
-    public void launchRace()
-    {
-        boolean finished = false;
-
-        resetDistanceAllHorses();    
-        while (!finished)
-        {
-            moveAllHorses();
-
-            finished = checkWin();
-
-            if (remainingHorses == 0)
-            {
-                finished = true;
-                System.out.println("All horses have fallen. No winner.");
-            } 
-
-            try{ 
-                TimeUnit.MILLISECONDS.sleep(100);
-            }catch(Exception e){}
-        }
-    }
+   
 
     /*********getter methods */
+
+    // this function gets the total amount of remaining horses.
+    //
+    public int getRemainingHorses()
+    {
+        return this.remainingHorses;
+    }
 
     // returns the Lane from the specified index
     //

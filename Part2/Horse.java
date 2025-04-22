@@ -19,6 +19,8 @@ public class Horse
     //Fields of class Horse
     private String name;
     private char horseSymbol;
+    private char backupSymbol;
+    private final char deathSymbol = '❌';
     private int distanceTravelled;
     private boolean hasFallen;
     private double confidence;
@@ -31,13 +33,13 @@ public class Horse
     {
         // initialise instance variables
         this.horseSymbol = horseSymbol;
+        this.backupSymbol = this.horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
        
     }
-    
     
     
     /******getters and setters for the horse class. ******/
@@ -68,6 +70,20 @@ public class Horse
     public char getSymbol()
     {
         return this.horseSymbol;
+    }
+
+    // returns the backed up symbol
+    //
+    public char getBackUpSymbol()
+    {
+        return this.backupSymbol;
+    }
+
+    // returns the death or eliminated symbol of the horse
+    //
+    public char getDeathSymbol()
+    {
+        return this.deathSymbol;
     }
     
     // returns a boolean value, depicting if the horse has fallen or not, returns true if it has fallen, false otherwise.
@@ -127,6 +143,7 @@ public class Horse
     {
         this.distanceTravelled = 0;
         this.hasFallen = false;
+        this.setSymbol(this.getBackUpSymbol());
     }
 
     // method to print out the horse stats and name

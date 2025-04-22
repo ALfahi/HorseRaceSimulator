@@ -18,17 +18,21 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.6 22/04/2025
- * - refactore the updateLaneListener for it to append new empty lanes on top of the old lanes, and also cut
- *   lanes from the old lanes (when user decreases lane count) whilst not resetting every lane each time.
- * - added the addHorse screen
- * - added some checks i.e. start race button doesn't lead anywhere if you have less than 2 horses.
+ * @version 1.7 22/04/2025
+ * 
+ *  - horses can now be seen visually in the screen,
+ * - added the race screen (user can now see how a race occurs in real time)
+ * - removed startRace() function, race now initialises lanes internally when constructed the first time.
+ * 
 */
 public class RaceGUI 
 {
     private JFrame screen;
     private static Race race = new Race();
-    private static Track track = new Track(race.getAllLanes());
+    // since swift doesn't allow for same component to be inside 2 different parents, just make 2 copies all looking at the same
+    // data (therefore they are all synced).
+    private static Track raceTrack = new Track(race.getAllLanes());
+    private static Track editTrack = new Track(race.getAllLanes());
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
 
@@ -58,6 +62,7 @@ public class RaceGUI
         JPanel raceSetupScreen = createRaceSetupScreen(cardLayout, cardContainer, menuButtonTemplate);
         JPanel editTrackScreen = createEditTrackScreen(cardLayout, cardContainer, menuButtonTemplate);
         JPanel addHorseScreen = createAddHorseScreen(cardLayout, cardContainer, menuButtonTemplate);
+        JPanel raceScreen = createRaceScreen(cardLayout, cardContainer, menuButtonTemplate);
 
 
         // adding in all the panels to the frame/ screen.
@@ -67,6 +72,7 @@ public class RaceGUI
         cardContainer.add(raceSetupScreen, "raceSetupScreen");
         cardContainer.add(editTrackScreen, "editTrackScreen");
         cardContainer.add(addHorseScreen, "addHorseScreen");
+        cardContainer.add(raceScreen, "raceScreen");
 
 
         
@@ -84,19 +90,11 @@ public class RaceGUI
         if (instance == null)
         {
             instance = new RaceGUI();
-            start();
 
         }
         return instance;
     }
 
-    // creates an instance of the Race class which holds the actual logic of how the race works.
-    //
-    private static void start()
-    {
-        final int MINIMUMLANES = 2;
-        race.initialiseLanes(MINIMUMLANES);
-    }
     /******************************* some functions to help create the GUI aspect***********/
 
     // this function get's passed in some Swing components that the panel will contain (if any), the layout it will be useing
@@ -290,7 +288,12 @@ public class RaceGUI
             , "Input Error", JOptionPane.ERROR_MESSAGE);
             return; 
         } 
+        // refresh the racetrack before accessing the page
+        race.resetDistanceAllHorses();
+        raceTrack.refresh();
         redirectScreen(cardLayout, cardContainer, screenName);
+        startRaceAnimation();
+
     }
 
     // This function adds a horse to the lane if the form inputs are valid, otherwise it returns an error message and does nothing
@@ -299,7 +302,7 @@ public class RaceGUI
     {
         // Extract the inputs
         String horseName = ((JTextField) components[0]).getText(); // JTextField for horse name
-        double horseConfidence = ((JSlider) components[1]).getValue(); // JSlider for confidence
+        double horseConfidence = ((JSlider) components[1]).getValue() / 1000.0; // JSlider for confidence
         String horseSymbol = ((JTextField)components[2]).getText(); // JTextField for the horse symbol
         JComboBox<String> comboBoxInput = (JComboBox<String>) components[3]; // JComboBox for lane selection
         String selectedLane = "";
@@ -332,8 +335,7 @@ public class RaceGUI
         int lane = Integer.parseInt(selectedLane.substring(5)) -1;// translate the input into a valid lane (remove 'lane ')
         Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence);
         race.addHorse(horse, lane);
-        System.out.println(race.getAllLanes());
-        track.refresh();
+        editTrack.refresh();
         // redirect to new screen:
         redirectScreen(cardLayout, cardContainer, screenName);
         
@@ -358,7 +360,7 @@ public class RaceGUI
                 for (int i = oldLanes.size(); i < newLaneCount; i++) 
                 {
                     race.addLane();
-                    track.refresh();
+                    editTrack.refresh();
                 }
             } 
             // If the new lane count is smaller, we need to trim the lanes array.
@@ -368,7 +370,7 @@ public class RaceGUI
                 for (int i = oldLanes.size() - 1; i >= newLaneCount; i--) 
                 {
                     race.removeLane();
-                    track.refresh();
+                    editTrack.refresh();
                 }
             }
 
@@ -437,7 +439,11 @@ public class RaceGUI
         addHorseButton.addAction(e -> refreshComboBox());
 
         Button editTrackButton = new Button("edit race track", template);
+        // always refresh and reset track when accessing the page.
+        editTrackButton.addAction(e-> race.resetDistanceAllHorses());
+        editTrackButton.addAction(e -> editTrack.refresh());
         editTrackButton.addPanelSwitchAction(cardLayout, cardContainer, "editTrackScreen");
+
 
         Button startRaceButton = new Button("start race", template);
         startRaceButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
@@ -486,7 +492,7 @@ public class RaceGUI
         topSection.add(dummyButtons, BorderLayout.CENTER);
     
         // scrollable track preview
-        JScrollPane scrollableTrack = new JScrollPane(track.getTrackPanel());
+        JScrollPane scrollableTrack = new JScrollPane(editTrack.getTrackPanel());
         scrollableTrack.setPreferredSize(new Dimension(1200, 400));
     
         // back button panel.
@@ -549,5 +555,40 @@ public class RaceGUI
         , BoxLayout.Y_AXIS, Color.RED);
     
         return addHorseScreen;
+    }
+
+    // this is the race screen page, a race is started and after the race the user can choose ot reset/ edit or replay the 
+    // race.
+    //
+    private JPanel createRaceScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template)
+    {
+        JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
+        JPanel raceScreen = createPanel(new Component[]{}, new BorderLayout(), Color.DARK_GRAY);
+        raceScreen.add(backContainer, BorderLayout.SOUTH);
+        raceScreen.add(raceTrack.getTrackPanel(), BorderLayout.NORTH);
+        return raceScreen;
+
+    }
+
+    // This will replace the race.start() function and allow us to see the race happen in real time.
+    //
+    public void startRaceAnimation() 
+    {
+        race.resetDistanceAllHorses();
+    
+        Timer raceTimer = new Timer(100, e -> 
+        {
+            race.moveAllHorses(); // handles logic + visuals
+    
+            if (race.checkWin() || race.getRemainingHorses() == 0) {
+                ((Timer) e.getSource()).stop();// stop the race since either all horse eliminated or someone has won.
+    
+                if (race.getRemainingHorses() == 0) {
+                    JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
+                }
+            }
+        });
+    
+        raceTimer.start(); // start GUI-friendly race loop
     }
 }
