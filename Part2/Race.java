@@ -8,9 +8,10 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.12 10/4/2025
+ * @version 1.13 10/4/2025
  * 
- * - added in more getter and setters for the raceGUI to use.
+ * - refactored the initialiseLane and resetLanes functions, to not create a new arrayList from scratch (other wise it would
+ * desync the lanes with the track class.)
  *
  */
 public class Race
@@ -31,11 +32,7 @@ public class Race
      */
     public Race() 
     {
-        raceLength = 30;
-        lanes = new ArrayList<>();
         initialiseLanes(2);
-        currentHorses = new ArrayList<>();
-        remainingHorses = 0;
     }
 
     /**********race set up **************/
@@ -43,7 +40,6 @@ public class Race
     //
     public void initialiseLanes(int numberOfLanes) 
     {
-        lanes = new ArrayList<>();// reset the lanes first.
         for (int i = 0; i < numberOfLanes; i++) 
         {
             addLane();
@@ -54,7 +50,8 @@ public class Race
     //
     private void resetRace()
     {
-        this.lanes = new ArrayList<>();
+        this.lanes.clear();
+        initialiseLanes(2);
         this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
         this.raceLength = 30;
@@ -275,6 +272,13 @@ public class Race
     public Lane getLane(int index)
     {
         return lanes.get(index);
+    }
+
+    // returns the entire arrayList of lanes
+    //
+    public List<Lane> getAllLanes()
+    {
+        return this.lanes;
     }
     // returns the number of lanes currently in the race.
     //

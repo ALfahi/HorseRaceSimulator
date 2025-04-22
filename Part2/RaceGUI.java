@@ -28,7 +28,7 @@ public class RaceGUI
 {
     private JFrame screen;
     private static Race race = new Race();
-    private static Track track = new Track();
+    private static Track track = new Track(race.getAllLanes());
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
 
@@ -96,7 +96,6 @@ public class RaceGUI
     {
         final int MINIMUMLANES = 2;
         race.initialiseLanes(MINIMUMLANES);
-        initialiseTrack(MINIMUMLANES);
     }
     /******************************* some functions to help create the GUI aspect***********/
 
@@ -211,7 +210,7 @@ public class RaceGUI
         if (!race.exceedsMaxLanes()) 
         {
             // increment textField.
-            textField.setText(String.valueOf(track.getLaneCount() + 1));
+            textField.setText(String.valueOf(race.getTotalLanes() + 1));
 
             System.out.println("number of lanes is " + race.getTotalLanes());
             if (!minusButton.isEnabled())// if minus button was disabled before, we added in an extra lane which can be deleted
@@ -234,7 +233,7 @@ public class RaceGUI
         if (race.overMinimumLanes())
         {
             // decrement the value in the textField.
-            textField.setText(String.valueOf(track.getLaneCount() - 1));
+            textField.setText(String.valueOf(race.getTotalLanes() - 1));
 
             System.out.println("number of lanes is " + race.getTotalLanes());
             if(!plusButton.isEnabled())
@@ -333,8 +332,8 @@ public class RaceGUI
         int lane = Integer.parseInt(selectedLane.substring(5)) -1;// translate the input into a valid lane (remove 'lane ')
         Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence);
         race.addHorse(horse, lane);
-        track.addHorseToLane(lane, horse);
-
+        System.out.println(race.getAllLanes());
+        track.refresh();
         // redirect to new screen:
         redirectScreen(cardLayout, cardContainer, screenName);
         
@@ -350,7 +349,7 @@ public class RaceGUI
         PropertyChangeListener listener = event -> {
             int newLaneCount = (int) ((JFormattedTextField) event.getSource()).getValue();
            // Get the current lanes (this assumes you can get an array or list of lanes)
-            List<Lane> oldLanes = track.getAllLanes(); // Get the current lanes
+            List<Lane> oldLanes = race.getAllLanes(); // Get the current lanes
             
             // If the new lane count is greater, we need to add new empty lanes.
             if (newLaneCount > oldLanes.size()) 
@@ -358,8 +357,8 @@ public class RaceGUI
                 // Add empty lanes at the end
                 for (int i = oldLanes.size(); i < newLaneCount; i++) 
                 {
-                    track.addLane(race.getRaceLength());
                     race.addLane();
+                    track.refresh();
                 }
             } 
             // If the new lane count is smaller, we need to trim the lanes array.
@@ -368,14 +367,14 @@ public class RaceGUI
                 // Remove lanes that are beyond the new lane count
                 for (int i = oldLanes.size() - 1; i >= newLaneCount; i--) 
                 {
-                    track.removeLane(); // Assuming there's a method to remove lanes by index.
                     race.removeLane();
+                    track.refresh();
                 }
             }
 
             // enable/ disable the appropriate buttons when the user types in 20 or 2.
-            plusButton.setEnabled(track.getLaneCount() < race.getMaxLanes());
-            minusButton.setEnabled(track.getLaneCount() > 2);
+            plusButton.setEnabled(race.getTotalLanes() < race.getMaxLanes());
+            minusButton.setEnabled(race.getTotalLanes() > 2);
         };
     
         return listener;
@@ -410,14 +409,6 @@ public class RaceGUI
    
     /*********functions to update GUI */
 
-    private static void initialiseTrack(int totalLanes)
-    {
-        for (int i = 0; i < totalLanes; i++)
-        {
-            track.addLane(race.getRaceLength());
-
-        }
-    }
 
     private static  void redirectScreen(CardLayout cardLayout, JPanel cardContainer, String newScreen)
     {

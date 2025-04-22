@@ -10,118 +10,58 @@ import java.util.*;
  * - trackPanel: this is a JPanel which stores all the lanes, it is used to visually display the lanes.
  * 
  * @author Fahi Sabab, Al
- * @version 1.0 21/04/2025
+ * @version 1.1 21/04/2025
+ * - the track now get's passed in a lanes arrayList which will be the same exact one as the one in the race class, makes both classes
+ *  be synced.
+ * - since race class adds/ removes lanes, removed every function that does not relate to the GUI.
  */
-public class Track // TO DO: Make sure that all lanes have an equal length.
+public class Track
 {
+    private List<Lane> lanes;
+    private JPanel trackPanel;
 
-    private List<Lane> lanes;   // List of lanes
-    private JPanel trackPanel;  // JPanel to display lanes
-
-    // constructor
+    // contructor of the track class., get's passed in the Race classe's lanes attribute when constructed.
     //
-    public Track() 
+    public Track(List<Lane> lanes) 
     {
-        lanes = new ArrayList<>();
+        this.lanes = lanes;
+        System.out.println(lanes);
         trackPanel = new JPanel();
-        trackPanel.setLayout(new BoxLayout(trackPanel, BoxLayout.Y_AXIS));  // Vertical stack of lanes
-    }
+        trackPanel.setLayout(new BoxLayout(trackPanel, BoxLayout.Y_AXIS));
 
-
-    // Add a lane to the track and set it's length.
-    //
-    public void addLane(int length) 
-    {
-        Lane lane = new Lane(lanes.size() + 1, length);
-        lanes.add(lane);  
-        trackPanel.add(lane.getLane());  // Add the lane's JPanel to the track panel
-        updatePanel();  // Refresh the track display
-    }
-    
-    // This function simply adds the horse to the lane and repaints it
-    //
-    public void addHorseToLane(int laneIndex, Horse horse) 
-    {
-        if (laneIndex >= 0 && laneIndex < lanes.size()) 
-        {
-            lanes.get(laneIndex).setHorse(horse);
-            updatePanel(); // Trigger a repaint to update the display
+        for (Lane lane : lanes) {
+            trackPanel.add(lane.getLane());
         }
-    }
-
-    // Remove the last lane from the track
-    //
-    public void removeLane() 
-    {
-        if (!lanes.isEmpty()) 
-        {
-            lanes.remove(lanes.size() - 1);
-            trackPanel.remove(trackPanel.getComponentCount() - 1);  // Remove the last JPanel from the display
-            updatePanel();  
-        }
-    }
-
-    public void clear()
-    {
-        lanes.clear();
-        trackPanel.removeAll();
         updatePanel();
     }
 
-    // Get the entire JPanel for the track (the visual component for the GUI)
+    // This method just refreshes the track panel, so that the changes can be seen visually.
+    //
+    public void refresh() 
+    {
+    
+        trackPanel.removeAll();
+        for (int i = 0; i < lanes.size(); i++) 
+        {
+            Lane lane = lanes.get(i);
+            trackPanel.add(lane.getLane());
+        }
+        updatePanel();
+    }
+
+    // returns the entire track and all it's lanes
+    // returns a JPanel
     //
     public JPanel getTrackPanel() 
     {
         return trackPanel;
     }
 
-    // Refreshes/ rerenders the track display
+    // actually updates the panel visually.
     //
     private void updatePanel() 
     {
-        trackPanel.revalidate();  
+        trackPanel.revalidate();
         trackPanel.repaint();
-    }
-
-    // Get a specific lane based on its index (returns the Lane object)
-    //
-    public Lane getLane(int index) 
-    {
-        if (index >= 0 && index < lanes.size()) 
-        {
-            return lanes.get(index);
-        } else 
-        {
-            return null;  // If the index is out of bounds
-        }
-    }
-
-    // Get all the lanes
-    //
-    public List<Lane> getAllLanes() 
-    {
-        return lanes;
-    }
-
-    // Get a list of indexes for all empty lanes
-    //
-    public List<Integer> getEmptyLaneIndexes() 
-    {
-        List<Integer> emptyLanes = new ArrayList<>();
-        for (int i = 0; i < lanes.size(); i++) 
-        {
-            if (lanes.get(i).getHorse() == null) // check if the lane is empty:
-            {  
-                emptyLanes.add(i);
-            }
-        }
-        return emptyLanes;
-    }
-
-    // Get the count of total lanes
-    //
-    public int getLaneCount() 
-    {
-        return lanes.size();
     }
 }
