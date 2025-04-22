@@ -33,6 +33,7 @@ public class Race
     {
         raceLength = 30;
         lanes = new ArrayList<>();
+        initialiseLanes(2);
         currentHorses = new ArrayList<>();
         remainingHorses = 0;
     }
@@ -179,16 +180,23 @@ public class Race
 
     // checks if the lane is empty or not.
     //
-    private boolean isLaneEmpty(int laneNumber)
+    public boolean isLaneEmpty(int laneNumber)
     {
-        return (lanes.get(laneNumber - 1).getHorse() == null);
+        return (lanes.get(laneNumber).getHorse() == null);
     }
 
     // checks if the lane is full or not. Returns boolean
     //
-    private boolean isLaneFull()
+    public boolean isLaneFull()
     {
         return (lanes.size() == currentHorses.size());
+    }
+
+    // this function is used to check if at least 2 horses are inside the lanes (before race starts)
+    //
+    public boolean isAtLeastTwoHorses()
+    {
+        return currentHorses.size() >= 2;
     }
 
     // checks to see if the number of lanes is less than or equal to 2( can't have a race with fewer than 2 lanes)
@@ -221,6 +229,11 @@ public class Race
     //
     public void removeLane()
     {
+        // if the current lane has a horse, remove that horse.
+        if (lanes.get(lanes.size() -1).getHorse() != null)
+        {
+            currentHorses.remove(currentHorses.size() - 1);
+        }
         lanes.remove(lanes.size() -1);
     }
 
@@ -257,6 +270,12 @@ public class Race
 
     /*********getter methods */
 
+    // returns the Lane from the specified index
+    //
+    public Lane getLane(int index)
+    {
+        return lanes.get(index);
+    }
     // returns the number of lanes currently in the race.
     //
     public int getTotalLanes()
@@ -289,6 +308,22 @@ public class Race
     public int getMinDistance()
     {
         return MINDISTANCE;
+    }
+
+    // This function is used to return the indexes of all empty lanes, returns an array of integers.
+    //
+    public int[] getAllEmptyLaneIndexes()
+    {
+        int nextFree = 0;
+        int[] emptyLanes = new int[lanes.size() - currentHorses.size()];// assign just the right amount of space
+        for (int i = 0; i < lanes.size(); i++)
+        {
+            if (lanes.get(i).getHorse() == null)
+            {
+                emptyLanes[nextFree] = i;
+            }
+        }
+        return emptyLanes;
     }
 
     /**************setter methods ************/
