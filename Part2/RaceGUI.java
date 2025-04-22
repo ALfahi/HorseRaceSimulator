@@ -331,8 +331,9 @@ public class RaceGUI
         
         // add horse to lane and redirect back to race set up screen.
         int lane = Integer.parseInt(selectedLane.substring(5)) -1;// translate the input into a valid lane (remove 'lane ')
-        race.addHorse(new Horse(horseSymbol.charAt(0), horseName, horseConfidence), lane);
-        // update track somehow (to do)
+        Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence);
+        race.addHorse(horse, lane);
+        track.addHorseToLane(lane, horse);
 
         // redirect to new screen:
         redirectScreen(cardLayout, cardContainer, screenName);
@@ -558,5 +559,4 @@ public class RaceGUI
     
         return addHorseScreen;
     }
-    
 }

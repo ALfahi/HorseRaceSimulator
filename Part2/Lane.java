@@ -26,6 +26,7 @@ public class Lane
     {
         this.laneNumber = laneNumber;
         this.lane = createLane(distance);
+        setLaneNumber(laneNumber);
     }
 
     /**********setters *************/
@@ -35,6 +36,7 @@ public class Lane
     public void setHorse(Horse horse)
     {
         this.horse = horse;
+        addHorseToLane();
     }
 
     /************getters ************/
@@ -61,10 +63,55 @@ public class Lane
     private JPanel createLane(int distance)
     {
         JPanel lane = new JPanel();
+        lane.setLayout(null);
         lane.setPreferredSize(new Dimension(distance, 50));
         lane.setBorder(BorderFactory.createLineBorder(Color.WHITE));
         lane.setBackground(Color.GREEN); 
         return lane;
+    }
+
+    // This functions appends the horse's symbol to the lane
+    //
+    private void addHorseToLane()// for now it's a character
+    {
+        JLabel horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
+        horseVisual.setBounds(20, 25, 40, 40);
+        lane.add(horseVisual);
+        update();
+    }
+
+    // this function just updates the visuals
+    //
+    private void updateNumberVisual(int number)
+    {
+        JLabel numberVisual = new JLabel(String.valueOf(number));
+        numberVisual.setFont(new Font("Arial", Font.BOLD, 24));
+        
+        // Set text color
+        numberVisual.setForeground(Color.WHITE);
+        numberVisual.setBounds(5, 25, 40, 40);
+        lane.add(numberVisual);
+
+        // update laneVisuals:
+        update();
+    }
+
+
+    // this sets the lane number attribute with a new lane number
+    //
+    public void setLaneNumber(int laneNumber)
+    {
+        this.laneNumber = laneNumber;
+        updateNumberVisual(laneNumber);
+    }
+
+    // this function updates the lane visuals.
+    //
+    private void update()
+    {
+        // update laneVisuals:
+        lane.revalidate();
+        lane.repaint();
     }
     
 }

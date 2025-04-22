@@ -37,6 +37,17 @@ public class Track // TO DO: Make sure that all lanes have an equal length.
         trackPanel.add(lane.getLane());  // Add the lane's JPanel to the track panel
         updatePanel();  // Refresh the track display
     }
+    
+    // This function simply adds the horse to the lane and repaints it
+    //
+    public void addHorseToLane(int laneIndex, Horse horse) 
+    {
+        if (laneIndex >= 0 && laneIndex < lanes.size()) 
+        {
+            lanes.get(laneIndex).setHorse(horse);
+            updatePanel(); // Trigger a repaint to update the display
+        }
+    }
 
     // Remove the last lane from the track
     //
