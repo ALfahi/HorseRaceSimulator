@@ -18,11 +18,14 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.7 22/04/2025
+ * @version 1.8 22/04/2025
  * 
- *  - horses can now be seen visually in the screen,
- * - added the race screen (user can now see how a race occurs in real time)
- * - removed startRace() function, race now initialises lanes internally when constructed the first time.
+ * - added a back button in rac set up screen to go back to the main menu, (if the 'start' button is pressed again in start screen)
+ *   then entire race is reset.
+ * - added in a replay button in the race screen to redo the race with the current horses.
+ * 
+ * TO DO: add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
+ *  where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
  * 
 */
 public class RaceGUI 
@@ -192,7 +195,7 @@ public class RaceGUI
     {
          // Create a back button to go back to the previous screen
          Button backButton = new Button("Back", template);
-         backButton.addPanelSwitchAction(layout, cardContainer, "raceSetupScreen");
+         backButton.addPanelSwitchAction(layout, cardContainer, previousScreen);
          JPanel backContainer = createPanel(new Component[]{backButton.getJButton()}, new FlowLayout(FlowLayout.LEFT), null);
 
          return backContainer;
@@ -425,15 +428,17 @@ public class RaceGUI
     private JPanel createStartScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
     {
         Button startButton = new Button("start", template);
+        // start button will reset the entire race (i.e remove all horses from lanes and also go to the main menu/ reace set up page)
         startButton.addPanelSwitchAction(cardLayout, cardContainer, "raceSetupScreen");
-        Button[] startScreenButtons = {startButton};
-        return createPanel(convertButtonArrayToJButtons(startScreenButtons), new FlowLayout(), Color.ORANGE);
+        startButton.addAction(e -> race.resetRace());
+        return createPanel(new Component[]{startButton.getJButton()}, new FlowLayout(), Color.ORANGE);
     }
     
     // this will screate the race set up screen, returns the corresponding JPanel
     //
     private JPanel createRaceSetupScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
     {
+
         Button addHorseButton = new Button("add Horse", template);
         addHorseButton.addAction(e -> redirectToAddHorsePage(cardLayout, cardContainer, "addHorseScreen"));
         addHorseButton.addAction(e -> refreshComboBox());
@@ -449,7 +454,18 @@ public class RaceGUI
         startRaceButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
     
         Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton};
-        return createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1), Color.RED);
+        JPanel menuButtonContainer = createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1, 0, 20), null);
+
+        JPanel centerWrapper = createPanel(new Component[]{menuButtonContainer}, new FlowLayout(FlowLayout.CENTER), null);
+        
+        // this is the main panel for this screen (will contain every other component)
+        JPanel backButtonContainer = createBackButtonPanel(template, cardLayout, cardContainer, "startScreen");
+        JPanel raceSetUpScreen = new JPanel(new BorderLayout());
+        raceSetUpScreen.setBackground(Color.YELLOW);
+        raceSetUpScreen.add(centerWrapper, BorderLayout.CENTER);
+        raceSetUpScreen.add(backButtonContainer, BorderLayout.SOUTH);
+
+        return raceSetUpScreen;
     }
     
     // this will create the edit track screen, returns the corresponding JPanel
@@ -563,8 +579,16 @@ public class RaceGUI
     private JPanel createRaceScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template)
     {
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
+
+        // create the other buttons:
+        Button replayButton = new Button("replay reace", 
+        template);
+        replayButton.addAction(e -> startRaceAnimation());
+
+        // main panel for this screen.
         JPanel raceScreen = createPanel(new Component[]{}, new BorderLayout(), Color.DARK_GRAY);
         raceScreen.add(backContainer, BorderLayout.SOUTH);
+        raceScreen.add(replayButton.getJButton(), BorderLayout.CENTER);
         raceScreen.add(raceTrack.getTrackPanel(), BorderLayout.NORTH);
         return raceScreen;
 

@@ -1,7 +1,10 @@
 package Part2;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.awt.image.BufferedImage;
 
 /**
  * This is the Lane class, this class will be used to create and store information of each lane
@@ -13,10 +16,9 @@ import java.awt.*;
  * - trackCondition: what type of condition the track has.
  * 
  * @author Fahi Sabab, Al
- * @version 1.1 20/04/2025
+ * @version 1.2 20/04/2025
  * 
- * - now the lane displays an 'X' symbol when a horse has fallen, added padding to the lanes so that the 
- *  horse can never overlap with the text.
+ * - Added a finish line to each of the lanes.
  * 
  */
 public class Lane 
@@ -25,6 +27,8 @@ public class Lane
     Horse horse = null;
     JPanel lane = new JPanel();
     JLabel horseVisual = new JLabel();// this will move as the race goes along.
+    JLabel finishLine;
+    final int SCALE = 20;
     private String trackCondition;
 
     // constructor for this class:
@@ -70,10 +74,18 @@ public class Lane
     {
         JPanel lane = new JPanel();
         lane.setLayout(null);
-        lane.setPreferredSize(new Dimension(distance, 50));
+        lane.setPreferredSize(new Dimension(distance * SCALE, 50));
         lane.setBorder(BorderFactory.createLineBorder(Color.WHITE));
         lane.setBackground(Color.GREEN); 
+
+        // draw on the finish line:
+        finishLine = new JLabel(scaleIcon("Part2/images/finishLine.png", 50, 50));
+        finishLine.setBounds((distance) * SCALE, 0, 50, 50);
+
+        lane.add(finishLine);
         return lane;
+
+    
     }
 
     // This functions appends the horse's symbol to the lane
@@ -81,7 +93,8 @@ public class Lane
     private void addHorseToLane()// for now it's a character
     {
         this.horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
-        horseVisual.setBounds(15, 20, 40, 40);
+        horseVisual.setBounds(15, 20, 40, 40);// x and y values here are redundant, they will get overwritten
+                                                              // by update Horse visual.
         lane.add(this.horseVisual);
         updateHorseVisual();
         update();
@@ -107,12 +120,12 @@ public class Lane
     //
     public void updateHorseVisual()
     {
-        final int SCALE = 20;
         if (horse != null && horseVisual != null) 
         {
             int paddingLeft = (2 * SCALE);
             int position = (horse.getDistanceTravelled() * SCALE) + paddingLeft; // scale: 1 step/ movement is 20px
-            horseVisual.setLocation(position, 10);
+            int yCenter = (lane.getPreferredSize().height - horseVisual.getPreferredSize().height) / 2;
+            horseVisual.setLocation(position, yCenter);
             update();
         }
     }
@@ -139,6 +152,21 @@ public class Lane
         updateNumberVisual(laneNumber);
     }
 
+    // this function just sets a new distance value to the race track., it will also move the finish line to the new end of lane.
+    //
+    public void setDistance(int newDistance)
+    {
+        lane.setPreferredSize(new Dimension(newDistance * SCALE, 50));
+
+        // Move finish line to new right-side
+        if (finishLine != null)
+        {
+            finishLine.setBounds((newDistance) * SCALE, 0, 5, 50);
+        }
+        // Revalidate to apply changes
+        update();
+    }
+
     // this function updates the lane visuals.
     //
     private void update()
@@ -147,5 +175,23 @@ public class Lane
         lane.revalidate();
         lane.repaint();
     }
+
+     // resizes ImageIcons to our needs.
+    //
+     private ImageIcon scaleIcon(String filePath, int width, int height) 
+     {
+        try 
+        {
+            BufferedImage originalImage = ImageIO.read(new File(filePath));
+            Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaledImage);
+        } 
+        catch (Exception e) 
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     
 }
