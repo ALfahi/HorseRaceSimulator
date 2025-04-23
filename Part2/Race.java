@@ -7,12 +7,9 @@ import java.util.ArrayList;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.13 10/4/2025
+ * @version 1.14 10/4/2025
  * 
- * - added in some logic, so when a horse has fallne, it's respective lane will show an 'X' symbol instead of the horse's normal 
- *   symbol.
- * - when race get's reset, also reset all the horse visuals to their normal symbol.
- * - removed the race.start() function, moved it to the raceGUI class, so that the horses moving can be seen in real time.
+ * - fixed bug to now check if hors distance is greather than or equal to length, rather than strictly equal.
  *
  */
 public class Race
@@ -55,7 +52,7 @@ public class Race
         initialiseLanes(2);
         this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
-        this.raceLength = 100;
+        this.raceLength = 30;// default value
     }
 
     /********** Horse management ************/
@@ -107,7 +104,7 @@ public class Race
      */
     private boolean raceWonBy(Horse theHorse)
     {
-        if (theHorse.getDistanceTravelled() == raceLength)
+        if (theHorse.getDistanceTravelled() >= raceLength)
         {
             System.out.println(theHorse.getName() + " has won!!!");
             return true;
@@ -316,7 +313,7 @@ public class Race
     public Horse getLeadHorse()
     {
         int maxDistance = -1;
-        Horse leadHorse = new Horse('a', null, maxDistance);
+        Horse leadHorse = new Horse('a', null, maxDistance, null);
         for (int i =0; i < currentHorses.size(); i++)
         {
             if (currentHorses.get(i).getDistanceTravelled() > maxDistance)
@@ -351,6 +348,10 @@ public class Race
     public void setRaceLength(int distance)
     {
         this.raceLength = distance;
+        for (int i = 0; i < lanes.size(); i++)// also change the distances of the rest of the lanes
+        {
+            lanes.get(i).setDistance(distance);
+        }
     }
 }
 

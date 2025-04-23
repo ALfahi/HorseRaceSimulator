@@ -1,4 +1,8 @@
 package Part2;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 /**
  * This is the Horse class, horses are instantiated from this class, they have the follwoing attributes:
  * - name: the horse's name
@@ -7,29 +11,38 @@ package Part2;
  * - hasFallen: a boolean variable to check if the horse has fell
  * - confidence: a double variable depicting how confident a horse is where higher confidence = faster speeds but more prone to falling
  *               and vice versa.
+ * - backUpSymbol: stores the horse's usual symbol.
+ * - death symbol: what the horse will be displayed as when they fall.
+ * - TYPETOSPEED: maps each possible horse type (minus wild horse) to a set speed multiplier (integer)
  *   if a horse has fallen, they can't move for that current race, and their confidence decreases
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.3 10/4/2025
- * - added in an extra function to display the horses stats (it's name and confidence)
+ * @version 1.4 10/4/2025
+ * - changed logic of how the horse moves by incoporating the different horse types.
  */
 public class Horse
 {
     //Fields of class Horse
     private String name;
+    private String type;
     private char horseSymbol;
     private char backupSymbol;
     private final char deathSymbol = '❌';
     private int distanceTravelled;
     private boolean hasFallen;
     private double confidence;
-    
+    private static final Map<String, Integer> TYPETOSPEED = new HashMap<String, Integer>();
+    static {
+        TYPETOSPEED.put("Arabian", 1);
+        TYPETOSPEED.put("Quarter Horse", 2);
+        TYPETOSPEED.put("Thoroughbred", 3);
+    }
       
     /*
      * Constructor for objects of class Horse
      */
-    public Horse(char horseSymbol, String horseName, double horseConfidence)
+    public Horse(char horseSymbol, String horseName, double horseConfidence, String type)
     {
         // initialise instance variables
         this.horseSymbol = horseSymbol;
@@ -38,6 +51,7 @@ public class Horse
         this.confidence = horseConfidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
+        this.type = type;
        
     }
     
@@ -84,6 +98,19 @@ public class Horse
     public char getDeathSymbol()
     {
         return this.deathSymbol;
+    }
+
+    // This functions gets the speed multiplier of the horse depending on it's type, if it's a wild horse, then speed is random.
+    //
+    public int getSpeed()
+    {
+        Random roll = new Random();
+        if (!type.equals("Wild"))
+        {
+            return TYPETOSPEED.get(this.type);
+        }
+        // it's a wild horse.
+        return roll.nextInt(5);// 0 - 4 is the multipluer for horses of wild types.
     }
     
     // returns a boolean value, depicting if the horse has fallen or not, returns true if it has fallen, false otherwise.
@@ -134,7 +161,7 @@ public class Horse
     //
     public void moveForward()
     {
-        this.distanceTravelled ++;
+        this.distanceTravelled = this.distanceTravelled  + getSpeed();
     }
     // reset's the horse, except for it's confidence (i.e distance travelled and hasFallen attributes are back to their default)
     // values

@@ -1,6 +1,7 @@
 package Part2;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.plaf.basic.BasicSliderUI;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
@@ -18,12 +19,11 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.8 22/04/2025
+ * @version 1.9 22/04/2025
  * 
- * - added a back button in rac set up screen to go back to the main menu, (if the 'start' button is pressed again in start screen)
- *   then entire race is reset.
- * - added in a replay button in the race screen to redo the race with the current horses.
- * 
+ * - added in an extra field in add horse screen:
+ *      - added in a JCombox where user can pick their type of horse.
+ *      - added in a JLabel below the type selector, saying what the speed multiplayer is for each type.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -317,6 +317,7 @@ public class RaceGUI
         String horseSymbol = ((JTextField)components[2]).getText(); // JTextField for the horse symbol
         JComboBox<String> comboBoxInput = (JComboBox<String>) components[3]; // JComboBox for lane selection
         String selectedLane = "";
+        String type = (String) ((JComboBox<String>) components[4]).getSelectedItem(); // this stores the horse type that the user picked.
         
         // Validate the horse name
         if (horseName.trim().isEmpty()) 
@@ -344,7 +345,7 @@ public class RaceGUI
         
         // add horse to lane and redirect back to race set up screen.
         int lane = Integer.parseInt(selectedLane.substring(5)) -1;// translate the input into a valid lane (remove 'lane ')
-        Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence);
+        Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence, type);
         race.addHorse(horse, lane);
         editTrack.refresh();
         // redirect to new screen:
@@ -403,6 +404,45 @@ public class RaceGUI
         };
     
         return listener;
+    }
+
+    /*********actions relating to JComboBoxes **************/
+
+    // this funcion will take in the breed that the user selected, and limit the confidecne slider based upon it
+    //
+    private void changeHorseTypeSlider (String type, JSlider slider, JLabel label)
+    {
+        // creating some default max and min values for slider as a fallback
+        int min = 300;
+        int max = 900;
+        if (type.equals("Arabian"))
+        {
+            min = 200;
+            max = 700;
+            label.setText(type + ": speed multiplier of 1");
+        }
+        else if (type.equals("Thoroughbred"))
+        {
+            min = 700;
+            max = 1000;
+            label.setText(type + ": speed multiplier of 3");
+        }
+        else if (type.equals("Quarter Horse"))
+        {
+            min = 300;
+            max = 600;
+            label.setText(type + ": speed multiplier of 2");
+        }
+        else// it's a wild horse
+        {
+            min = 300;
+            max = 900;
+            label.setText(type + ": speed multiplier between 0 and 4 (random each step it takes)");
+        }
+
+        slider.setMaximum(max);
+        slider.setMinimum(min);
+        slider.setValue((max + min) / 2);
     }
 
 
@@ -541,15 +581,65 @@ public class RaceGUI
         JPanel namePanel = createPanel(new Component[]{ horseNameLabel,horseNameInput  }, new FlowLayout(FlowLayout.LEFT),
         null);
         
+        // intitialise the horse confidence slider as we will need it here
+        JSlider confidenceSlider = new JSlider(200, 700, 450); // default confidence slider into the arabain horse type.
+        // horse type field:
+        JLabel horseTypeLabel = new JLabel("Horse Type:");
+        String[] horseTypes = {"Arabian", "Thoroughbred", "Quarter Horse", "Wild"};
+        JComboBox<String> typeSelector = new JComboBox<>(horseTypes);
+        // a label to tell user what speed multiplier of each horse is.
+        JLabel typeInfoLabel = new JLabel("Arabian horse: speed multiplier of 1");
+        typeSelector.addActionListener(e -> changeHorseTypeSlider((String)typeSelector.getSelectedItem(), confidenceSlider,
+        typeInfoLabel));
+        JPanel typePanel = createPanel(new Component[]{horseTypeLabel, typeSelector}, new FlowLayout(FlowLayout.LEFT),
+        null);
+
+        // this panel includes the tye selector, but also a label which says what the multiplier is for that type.
+        JPanel completeTypePanel = createPanel(new Component[]{typePanel, typeInfoLabel}, new GridLayout(2, 1), null);
+
         // Confidence slider input
         JLabel confidenceLabel = new JLabel("Confidence (0.0 to 1.0):");
-        JSlider confidenceSlider = new JSlider(0, 1000, 500); // Slider from 0 to 1000 representing 0.0 to 1.0
+
+        // first creating a reference slider to sit behind the real slider: (cannnot be edited by user)
+        JSlider fullRangeSlider = new JSlider(0, 1000);
+        fullRangeSlider.setEnabled(false);// user can't edit it.
+        //fullRangeSlider.setOpaque(false);
+        fullRangeSlider.setFocusable(false);
+        fullRangeSlider.setPaintTicks(false);
+        fullRangeSlider.setPaintLabels(true);
+        fullRangeSlider.setMajorTickSpacing(1000);// only showing the end labels.
+        fullRangeSlider.setUI(new BasicSliderUI(fullRangeSlider) 
+        {
+            // overwritting this methd to hide the thumb/ circle 
+            public void paintThumb(Graphics g) {} 
+        });
+
+
+        // actual slider.
         confidenceSlider.setMajorTickSpacing(100);
-        confidenceSlider.setMinorTickSpacing(10);
         confidenceSlider.setPaintTicks(true);
         confidenceSlider.setPaintLabels(true);
+        // Make the slider transparent, so that it blends in with the background one.
+        confidenceSlider.setBackground(new Color(0, 0, 0, 0)); // Transparent background
+        confidenceSlider.setOpaque(false); 
 
-        JPanel confidencePanel = createPanel(new Component[]{confidenceLabel, confidenceSlider}, new FlowLayout(FlowLayout.LEFT),
+        // Remove the border
+        confidenceSlider.setBorder(BorderFactory.createEmptyBorder());
+
+        //layering the sliders
+        JLayeredPane layeredSliders = new JLayeredPane();
+        int width = 400, 
+        height = 60;
+        fullRangeSlider.setBounds(0, 0, width, height);
+        confidenceSlider.setBounds(40, 0, width - 80, height);// offset the editiable slider more inside the bacgkround one,
+                                                                // also make it have a smaller width so the background slider can be
+                                                                // visible.
+
+        layeredSliders.setPreferredSize(new Dimension(width, height));
+        layeredSliders.add(fullRangeSlider, JLayeredPane.DEFAULT_LAYER);
+        layeredSliders.add(confidenceSlider, JLayeredPane.PALETTE_LAYER);
+
+        JPanel confidencePanel = createPanel(new Component[]{confidenceLabel, layeredSliders}, new FlowLayout(FlowLayout.LEFT),
         null);
     
         // horse symbol field
@@ -565,8 +655,8 @@ public class RaceGUI
     
         // add horse button panel
 
-        // array of all inputs
-        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes};
+        // array of all inputs that need validating.
+        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector};
         JButton addHorseButton = new Button("add horse", template).getJButton();
         addHorseButton.addActionListener(e -> addFormHorse(inputs, cardLayout, cardContainer, "raceSetupScreen"));
         JPanel addHorsePanel = createPanel(new Component[] {addHorseButton},
@@ -575,8 +665,8 @@ public class RaceGUI
         // back button panel.
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
 
-        addHorseScreen = createPanel(new Component[]{namePanel, confidencePanel, symbolPanel, lanePanel, addHorsePanel, backContainer}
-        , BoxLayout.Y_AXIS, Color.RED);
+        addHorseScreen = createPanel(new Component[]{namePanel, completeTypePanel, confidencePanel, symbolPanel, lanePanel, 
+            addHorsePanel, backContainer}, BoxLayout.Y_AXIS, Color.RED);
     
         return addHorseScreen;
     }
