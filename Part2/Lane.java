@@ -18,7 +18,8 @@ import java.awt.image.BufferedImage;
  * @author Fahi Sabab, Al
  * @version 1.2 20/04/2025
  * 
- * - Added a finish line to each of the lanes.
+ * - updated code to always show the finish lane at the end of the lane, added padding to the lane to incoportate the finish line.
+ * - added some useful attributes to change the lane's height and finish line's width very easily.
  * 
  */
 public class Lane 
@@ -28,7 +29,10 @@ public class Lane
     JPanel lane = new JPanel();
     JLabel horseVisual = new JLabel();// this will move as the race goes along.
     JLabel finishLine;
-    final int SCALE = 20;
+    // some dimensions.
+    final static  int SCALE = 20;
+    final int FINISHLINEWIDTH = 50;
+    final int LANEHEIGHT = 60;// lane width depends on the race length, so don't include here.
     private String trackCondition;
 
     // constructor for this class:
@@ -49,6 +53,30 @@ public class Lane
         addHorseToLane();
     }
 
+     // this sets the lane number attribute with a new lane number
+    //
+    public void setLaneNumber(int laneNumber)
+    {
+        this.laneNumber = laneNumber;
+        updateNumberVisual(laneNumber);
+    }
+
+    // this function just sets a new distance value to the race track., it will also move the finish line to the new end of lane.
+    //
+    public void setDistance(int newDistance)
+    {
+        lane.setPreferredSize(new Dimension((newDistance * SCALE) + FINISHLINEWIDTH, LANEHEIGHT));
+
+        // Move finish line to new right-side
+        if (finishLine != null)
+        {
+            finishLine.setBounds(newDistance * SCALE, 0, FINISHLINEWIDTH, LANEHEIGHT);
+        }
+        // Revalidate to apply changes
+        update();
+    }
+
+
     /************getters ************/
 
     // this get's the value of the horse attribute
@@ -65,6 +93,13 @@ public class Lane
         return this.lane;
     }
 
+    // this function returns the scale
+    //
+    public static int getScale()
+    {
+        return SCALE;
+    }
+
     /**************** other functions***********/
 
     // this function creates the visual aspect of the lane
@@ -74,13 +109,14 @@ public class Lane
     {
         JPanel lane = new JPanel();
         lane.setLayout(null);
-        lane.setPreferredSize(new Dimension(distance * SCALE, 50));
+        lane.setPreferredSize(new Dimension((distance * SCALE) + FINISHLINEWIDTH, LANEHEIGHT));// add some padding to always show 
+                                                                                               // finish line at end of lane.
         lane.setBorder(BorderFactory.createLineBorder(Color.WHITE));
         lane.setBackground(Color.GREEN); 
 
         // draw on the finish line:
-        finishLine = new JLabel(scaleIcon("Part2/images/finishLine.png", 50, 50));
-        finishLine.setBounds((distance) * SCALE, 0, 50, 50);
+        finishLine = new JLabel(scaleIcon("Part2/images/finishLine.png", FINISHLINEWIDTH, LANEHEIGHT));
+        finishLine.setBounds(distance  * SCALE, 0, FINISHLINEWIDTH, LANEHEIGHT);
 
         lane.add(finishLine);
         return lane;
@@ -142,31 +178,7 @@ public class Lane
         this.horseVisual.setText(String.valueOf(horse.getDeathSymbol()));
     }
 
-    // This method will update the horse's position 
-
-    // this sets the lane number attribute with a new lane number
-    //
-    public void setLaneNumber(int laneNumber)
-    {
-        this.laneNumber = laneNumber;
-        updateNumberVisual(laneNumber);
-    }
-
-    // this function just sets a new distance value to the race track., it will also move the finish line to the new end of lane.
-    //
-    public void setDistance(int newDistance)
-    {
-        lane.setPreferredSize(new Dimension(newDistance * SCALE, 50));
-
-        // Move finish line to new right-side
-        if (finishLine != null)
-        {
-            finishLine.setBounds((newDistance) * SCALE, 0, 5, 50);
-        }
-        // Revalidate to apply changes
-        update();
-    }
-
+   
     // this function updates the lane visuals.
     //
     private void update()

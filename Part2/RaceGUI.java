@@ -24,13 +24,21 @@ import java.util.List;
  *   then entire race is reset.
  * - added in a replay button in the race screen to redo the race with the current horses.
  * 
- * TO DO: add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
- *  where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
+ * TO DO: 
+ *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
+ *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
+ *  - fix back button positioning in some pages
+ *  - link up the race edit form to dynamically change the distance and then go through all lanes to change the distance.
+ *  - mabye limit number of lanes into (screen height / lane height) / 2.
+ *  - fix auto scroll to lead horse feature.
  * 
 */
 public class RaceGUI 
 {
     private JFrame screen;
+    private Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private final double SCREENHEIGHT = screenSize.getHeight();
+    private final double SCREENWIDTH = screenSize.getWidth();
     private static Race race = new Race();
     // since swift doesn't allow for same component to be inside 2 different parents, just make 2 copies all looking at the same
     // data (therefore they are all synced).
@@ -46,7 +54,7 @@ public class RaceGUI
         
         // initialise the screen
         this.screen = new JFrame("GUI Horse Race");
-        this.screen.setSize(1200,800);// change these later.
+        this.screen.setSize((int) getScreenWidth(),(int) getScreenHeight());// change these later.
         this.screen.setVisible(true);
         // closes application once user closes the window.
         this.screen.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -508,8 +516,8 @@ public class RaceGUI
         topSection.add(dummyButtons, BorderLayout.CENTER);
     
         // scrollable track preview
-        JScrollPane scrollableTrack = new JScrollPane(editTrack.getTrackPanel());
-        scrollableTrack.setPreferredSize(new Dimension(1200, 400));
+        JScrollPane scrollableTrack = editTrack.getTrackScrollPane();
+        scrollableTrack.setPreferredSize(new Dimension((int)SCREENWIDTH, (int) SCREENHEIGHT/ 2));
     
         // back button panel.
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
@@ -580,17 +588,48 @@ public class RaceGUI
     {
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
 
-        // create the other buttons:
-        Button replayButton = new Button("replay reace", 
-        template);
-        replayButton.addAction(e -> startRaceAnimation());
+    // create the other buttons:
+    Button replayButton = new Button("replay reace", template);
+    replayButton.addAction(e -> startRaceAnimation());
 
-        // main panel for this screen.
-        JPanel raceScreen = createPanel(new Component[]{}, new BorderLayout(), Color.DARK_GRAY);
-        raceScreen.add(backContainer, BorderLayout.SOUTH);
-        raceScreen.add(replayButton.getJButton(), BorderLayout.CENTER);
-        raceScreen.add(raceTrack.getTrackPanel(), BorderLayout.NORTH);
-        return raceScreen;
+    // scrollPanes to store both the racce track and also the stats
+    JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
+    JScrollPane statsJScrollPane = new JScrollPane(
+        createPanel(new Component[]{}, new FlowLayout(), Color.decode("#FFFDD0"))
+    );
+
+    // enable scrollbars as needed
+    raceTrackJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    raceTrackJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    statsJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+    statsJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+    // this panel will hold both the track and also the panel to house the information of theindivisual horses
+    // e.g. name, confidence etc.
+    JPanel northContainer = createPanel(
+        new Component[]{raceTrackJScrollPane, statsJScrollPane},
+        new GridLayout(1, 2), null
+    );
+
+    // make sure northContainer only takes up 50% of the screen height.
+
+   northContainer.setPreferredSize(new Dimension((int)getScreenWidth(), (int) (getScreenHeight()) / 2));
+
+    // main panel for this screen.
+    JPanel raceScreen = new JPanel();
+    raceScreen.setLayout(new BoxLayout(raceScreen, BoxLayout.Y_AXIS));
+    raceScreen.setBackground(Color.DARK_GRAY);
+
+    // button container for bottom controls
+    JPanel buttonContainer = new JPanel(new FlowLayout());
+    buttonContainer.add(replayButton.getJButton());
+    buttonContainer.add(backContainer);
+
+    // add components to screen
+    raceScreen.add(northContainer);
+    raceScreen.add(buttonContainer);
+
+    return raceScreen;
 
     }
 
@@ -598,10 +637,12 @@ public class RaceGUI
     //
     public void startRaceAnimation() 
     {
+        resetRaceView();
         race.resetDistanceAllHorses();
-    
+        JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
         Timer raceTimer = new Timer(100, e -> 
         {
+            followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     
             if (race.checkWin() || race.getRemainingHorses() == 0) {
@@ -614,5 +655,54 @@ public class RaceGUI
         });
     
         raceTimer.start(); // start GUI-friendly race loop
+    }
+
+    // this function will update the race's horizontal scrollpane to follow the lead horse (if it goes off screen)
+    //
+    private void followLeadHorse(JScrollPane raceTrackJScrollPane, Horse leadHorse)
+    {
+        // Get the scroll bar and update its position
+        System.out.println(leadHorse.getDistanceTravelled());
+        JScrollBar horizontalScrollBar = raceTrackJScrollPane.getHorizontalScrollBar();
+        if (horizontalScrollBar != null && leadHorse != null) 
+        {
+            // Calculate the scroll position based on the lead horse's distance
+            int maxScroll = raceTrackJScrollPane.getHorizontalScrollBar().getMaximum();
+            int leadHorsePosition = leadHorse.getDistanceTravelled() * Lane.getScale();
+    
+            // Scroll only when the lead horse moves out of view (i.e., it is near the edge of the visible area)
+            if (leadHorsePosition > horizontalScrollBar.getValue() + raceTrackJScrollPane.getViewport().getWidth()) 
+            {
+                horizontalScrollBar.setValue(Math.min(leadHorsePosition, maxScroll));
+            }
+        }
+    }
+
+    // this function will reset the race's horizontal scroll pane back to it's starting position.
+    //
+    private void resetRaceView()
+    {
+        JScrollPane raceTrackJScrollPane = raceTrack.getTrackScrollPane();// we grab the scroll pane from the race track.
+        if (raceTrackJScrollPane != null) 
+        {
+            JScrollBar horizontalScrollBar = raceTrackJScrollPane.getHorizontalScrollBar();
+            if (horizontalScrollBar != null) 
+            {
+                horizontalScrollBar.setValue(0); // Reset the scroll position
+            }
+        }
+    }
+
+    /*********** getters */
+
+    // this function just gets the height of the user's screen.
+    public double getScreenHeight()
+    {
+        return this.SCREENHEIGHT;
+    }
+
+    public double getScreenWidth()
+    {
+        return this.SCREENWIDTH;
     }
 }

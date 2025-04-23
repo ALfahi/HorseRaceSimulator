@@ -19,19 +19,26 @@ public class Track
 {
     private List<Lane> lanes;
     private JPanel trackPanel;
+    private JScrollPane trackScrollPane;
 
     // contructor of the track class., get's passed in the Race classe's lanes attribute when constructed.
     //
     public Track(List<Lane> lanes) 
     {
         this.lanes = lanes;
-        System.out.println(lanes);
         trackPanel = new JPanel();
         trackPanel.setLayout(new BoxLayout(trackPanel, BoxLayout.Y_AXIS));
 
         for (Lane lane : lanes) {
             trackPanel.add(lane.getLane());
         }
+        
+
+        // Wrap track panel in scroll pane
+        trackScrollPane = new JScrollPane(trackPanel);
+        trackScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        trackScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+
         updatePanel();
     }
 
@@ -55,6 +62,13 @@ public class Track
     public JPanel getTrackPanel() 
     {
         return trackPanel;
+    }
+
+    // returns the entire track and it's scrollPane
+    //
+    public JScrollPane getTrackScrollPane()
+    {
+        return this.trackScrollPane;
     }
 
     // actually updates the panel visually.

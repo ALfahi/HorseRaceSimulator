@@ -55,7 +55,7 @@ public class Race
         initialiseLanes(2);
         this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
-        this.raceLength = 30;
+        this.raceLength = 100;
     }
 
     /********** Horse management ************/
@@ -309,6 +309,23 @@ public class Race
     public int getMinDistance()
     {
         return MINDISTANCE;
+    }
+
+    // this function returns the lead horse.
+    //
+    public Horse getLeadHorse()
+    {
+        int maxDistance = -1;
+        Horse leadHorse = new Horse('a', null, maxDistance);
+        for (int i =0; i < currentHorses.size(); i++)
+        {
+            if (currentHorses.get(i).getDistanceTravelled() > maxDistance)
+            {
+                leadHorse = currentHorses.get(i);
+                maxDistance = leadHorse.getDistanceTravelled();
+            }
+        }
+        return leadHorse;
     }
 
     // This function is used to return the indexes of all empty lanes, returns an array of integers.
