@@ -6,7 +6,9 @@ import java.util.Random;
 /**
  * This is the Horse class, horses are instantiated from this class, they have the follwoing attributes:
  * - name: the horse's name
- * - horseSymbol: what symbol/ character to depict the horse during a race.
+ * - type: what type of horse it is e.g. Wild, Arabian etc.
+ * - horseImagePath: the image path to the corresponding horse icon, (used to display horse in GUI).
+ * - horseSymbol: what symbol/ character to depict the horse during a race, (an alterantive way to display horse).
  * - distanceTravelled: how far the horse has travelled during a race.
  * - hasFallen: a boolean variable to check if the horse has fell
  * - confidence: a double variable depicting how confident a horse is where higher confidence = faster speeds but more prone to falling
@@ -18,14 +20,15 @@ import java.util.Random;
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.4 10/4/2025
- * - changed logic of how the horse moves by incoporating the different horse types.
+ * @version 1.5 24/4/2025
+ * - horses can now support image paths as an alternative way to be displayed in the GUI screen.
  */
 public class Horse
 {
     //Fields of class Horse
     private String name;
     private String type;
+    private String horseImagePath = "";
     private char horseSymbol;
     private char backupSymbol;
     private final char deathSymbol = '❌';
@@ -46,6 +49,22 @@ public class Horse
     {
         // initialise instance variables
         this.horseSymbol = horseSymbol;
+        this.backupSymbol = this.horseSymbol;
+        this.name = horseName;
+        this.confidence = horseConfidence;
+        this.distanceTravelled = 0;
+        this.hasFallen = false;
+        this.type = type;
+       
+    }
+
+     /*
+     * Constructor for objects of class Horse, but it takes an image path for representation instead of a symbol/ char.
+     */
+    public Horse(String imagePath, String horseName, double horseConfidence, String type)
+    {
+        // initialise instance variables
+        this.horseImagePath = imagePath;
         this.backupSymbol = this.horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
@@ -98,6 +117,13 @@ public class Horse
     public char getDeathSymbol()
     {
         return this.deathSymbol;
+    }
+
+    // returns the specific image path for the horse. (returns a string)
+    //
+    public String getImagePath()
+    {
+        return this.horseImagePath;
     }
 
     // This functions gets the speed multiplier of the horse depending on it's type, if it's a wild horse, then speed is random.

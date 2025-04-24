@@ -20,7 +20,8 @@ package Part2;
  * @version 1.0 18/04/2025
  */
 
-public class ButtonTemplate {
+public class ButtonTemplate 
+{
     private int height;
     private int width;
     private String backgroundColor;

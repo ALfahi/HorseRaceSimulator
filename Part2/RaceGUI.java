@@ -1,6 +1,7 @@
 package Part2;
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicSliderUI;
 import java.awt.*;
 import java.awt.event.*;
@@ -19,11 +20,9 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.9 22/04/2025
+ * @version 1.9 23/04/2025
  * 
- * - added in an extra field in add horse screen:
- *      - added in a JCombox where user can pick their type of horse.
- *      - added in a JLabel below the type selector, saying what the speed multiplayer is for each type.
+ * - added feature where user can now choose to play as some predefined horse images, rather than just symbols.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -157,7 +156,7 @@ public class RaceGUI
 
     // this allows us to make icons into buttons
     //
-     private ImageIcon scaleIcon(String filePath, int width, int height) 
+     public static ImageIcon scaleIcon(String filePath, int width, int height) 
      {
         try 
         {
@@ -273,6 +272,59 @@ public class RaceGUI
         }
 
     }
+    // this function is used to initialise a bunch of Jbuttons in an array to be ready to act as a radio button.
+    //
+    private void setupHorseImageButtons(JButton[] buttons, final JButton[] selected) 
+    {
+    
+        Border selectedBorder = BorderFactory.createLineBorder(Color.BLUE, 4);
+        Border defaultBorder = BorderFactory.createEmptyBorder();
+    
+        for (int i = 0; i < buttons.length; i++) 
+        {
+            JButton button = buttons[i];
+            final JButton currentButton = button;// we need this to avoid some lambda referencing issues
+            buttons[i].setBorder(defaultBorder);
+            buttons[i].addActionListener(e -> handleHorseSelection(buttons, selected, currentButton, selectedBorder, defaultBorder));
+        }
+    }
+
+    // this functions makes an array of JButtons act as radio buttons (i.e only one can be selected)
+    //
+    private void handleHorseSelection(JButton[] allButtons, JButton[] oldSelectedButton, JButton newSelectedButton,
+     Border selectedBorder, Border defaultBorder) 
+     {
+        
+        if (oldSelectedButton[0] != null) // if a button has been previosuly clicked, reset it.
+        {
+            oldSelectedButton[0].setBorder(defaultBorder);// reset the previous horse button visually.
+        }
+
+        oldSelectedButton[0] = newSelectedButton;// assign it the new selectedButton to be selected logically.
+        newSelectedButton.setBorder(selectedBorder);// visually display it.
+    }
+
+    // this function enbles the passed in textfield the checkbox is checked, otherwise it diables it
+    //This is an actionListener for the checkbox in add horse screen.
+    //
+    private void toggleSymbolPicker(JCheckBox checkBox, JButton[] buttons, JTextField textfield)
+    {
+        boolean isChecked = checkBox.isSelected();
+        
+        // Enable or disable the symbol input field based on checkbox state
+        textfield.setEnabled(isChecked);
+
+        // Enable or disable the horse image buttons based on checkbox state
+        for (int i = 0; i < buttons.length; i++)
+        {
+            buttons[i].setEnabled(!isChecked);
+        }
+
+        // reset the horse symbol input field when switching back to the images.
+        if (!isChecked) {
+            textfield.setText("");
+        }
+    }
 
     // This function just makes it so that the user can't add a horse if the race tracks are full, otherwise it redirects into the
     // add horse page.
@@ -309,7 +361,7 @@ public class RaceGUI
 
     // This function adds a horse to the lane if the form inputs are valid, otherwise it returns an error message and does nothing
     //
-    private void addFormHorse(Component[] components, CardLayout cardLayout, JPanel cardContainer, String screenName ) 
+    private void addFormHorse(Component[] components, JButton[] selected, CardLayout cardLayout, JPanel cardContainer, String screenName ) 
     {
         // Extract the inputs
         String horseName = ((JTextField) components[0]).getText(); // JTextField for horse name
@@ -318,7 +370,11 @@ public class RaceGUI
         JComboBox<String> comboBoxInput = (JComboBox<String>) components[3]; // JComboBox for lane selection
         String selectedLane = "";
         String type = (String) ((JComboBox<String>) components[4]).getSelectedItem(); // this stores the horse type that the user picked.
+        boolean isSymbolEnabled = ((JCheckBox)components[5]).isSelected();// this stores the user's checkbox answer.
         
+        // we pass in the selected array, rather than keeping it inside components just so we always get the most up to date image
+        // that the user picked.
+        String horseImagePath = (String) selected[0].getClientProperty("imagePath");
         // Validate the horse name
         if (horseName.trim().isEmpty()) 
         {
@@ -326,11 +382,15 @@ public class RaceGUI
             return; 
         }
         
-        // Validate the horse symbol
-        if (horseSymbol.trim().isEmpty() || horseSymbol.length() != 1) 
+        // check if user decided to pick symbols instead of images:
+        if (isSymbolEnabled)
         {
-            JOptionPane.showMessageDialog(null, "Horse symbol must be a single character!", "Input Error", JOptionPane.ERROR_MESSAGE);
-            return; // Stop further execution if there's an error
+             // Validate the horse symbol
+            if (horseSymbol.trim().isEmpty() || horseSymbol.length() != 1) 
+            {
+                JOptionPane.showMessageDialog(null, "Horse symbol must be a single character!", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return; // Stop further execution if there's an error
+            }
         }
         
         // no need to validate confidence as the slider will ensure that it's within the valid range.
@@ -345,7 +405,17 @@ public class RaceGUI
         
         // add horse to lane and redirect back to race set up screen.
         int lane = Integer.parseInt(selectedLane.substring(5)) -1;// translate the input into a valid lane (remove 'lane ')
-        Horse horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence, type);
+        // if user picked symbol, we do the constructor which takes in that symbol, otherwise we pass in the image path of the 
+        // selected image.
+        Horse horse;
+        if (isSymbolEnabled)
+        {
+            horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence, type);
+        }
+        else
+        {
+            horse = new Horse(horseImagePath, horseName, horseConfidence, type);
+        }
         race.addHorse(horse, lane);
         editTrack.refresh();
         // redirect to new screen:
@@ -642,12 +712,43 @@ public class RaceGUI
         JPanel confidencePanel = createPanel(new Component[]{confidenceLabel, layeredSliders}, new FlowLayout(FlowLayout.LEFT),
         null);
     
+        // horse image field.
+        // add some client property to these so we can access the image paths for when we finally add a horse.
+        JButton brownHorseButton = new JButton(scaleIcon("Part2/images/brownHorse.png", 200, 150));
+        brownHorseButton.putClientProperty("imagePath", "Part2/images/brownHorse.png");
+        JButton blackHorseButton = new JButton(scaleIcon("Part2/images/blackHorse.png", 200, 150));
+        blackHorseButton.putClientProperty("imagePath", "Part2/images/blackHorse.png");
+        JButton whiteHorseButton = new JButton(scaleIcon("Part2/images/whiteHorse.png", 200, 150));
+        whiteHorseButton.putClientProperty("imagePath", "Part2/images/whiteHorse.png");
+        JButton blueHorseButton = new JButton(scaleIcon("Part2/images/blueHorse.png", 200, 150));
+        blueHorseButton.putClientProperty("imagePath", "Part2/images/blueHorse.png");
+
+        JButton[] horseImageButtons = {brownHorseButton, blackHorseButton, whiteHorseButton, blueHorseButton};
+
+        //  give them all the radio button action:
+        JButton[] selected = {null};
+        setupHorseImageButtons(horseImageButtons, selected);
+        // make the brownHorse button be clicked by default, by simulating a click.
+        handleHorseSelection(horseImageButtons, selected, brownHorseButton,
+        BorderFactory.createLineBorder(Color.BLUE, 4),
+        BorderFactory.createEmptyBorder());
+
+        JLabel horseImageLabel = new JLabel("please pick what horse you want to play as");
+        JPanel horseImageContainer = createPanel(horseImageButtons,  new FlowLayout(FlowLayout.LEFT), null);
+        horseImageContainer = createPanel(new Component[]{horseImageLabel, horseImageContainer}, new GridLayout(2, 1), null);
+
         // horse symbol field
         JLabel characterLabel = new JLabel("Single Character:");
         JFormattedTextField characterInput = new JFormattedTextField();
+        characterInput.setEnabled(false);// initially disable it.
         characterInput.setColumns(1);  // Only allow a single character
         JPanel symbolPanel = createPanel(new Component[]{characterLabel, characterInput}, new FlowLayout(FlowLayout.LEFT),
         null);
+
+        // creating a checkBox to toggle on and off horse image selector and symbol picker.
+        JCheckBox imagCheckBox = new JCheckBox("I want to play as my own symbol instead");
+        imagCheckBox.addActionListener(e -> toggleSymbolPicker(imagCheckBox, horseImageButtons, characterInput));
+        JPanel imagCheckBoxContainer = createPanel(new Component[]{imagCheckBox}, new FlowLayout(FlowLayout.LEFT), null);
     
     
         JLabel laneLabel = new JLabel("Please pick one of the following empty lanes");
@@ -656,17 +757,19 @@ public class RaceGUI
         // add horse button panel
 
         // array of all inputs that need validating.
-        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector};
+        System.out.println(selected[0].getClientProperty("imagePath"));
+        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector, imagCheckBox};// error is here, it takes in the coded selected value, NOT the changed one after user clicks button.
+        // solution: we need to dynamically built the inputs array to get that fresh selected[0] value.
         JButton addHorseButton = new Button("add horse", template).getJButton();
-        addHorseButton.addActionListener(e -> addFormHorse(inputs, cardLayout, cardContainer, "raceSetupScreen"));
+        addHorseButton.addActionListener(e -> addFormHorse(inputs, selected, cardLayout, cardContainer, "raceSetupScreen"));
         JPanel addHorsePanel = createPanel(new Component[] {addHorseButton},
         new FlowLayout(FlowLayout.CENTER), null);
         
         // back button panel.
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
 
-        addHorseScreen = createPanel(new Component[]{namePanel, completeTypePanel, confidencePanel, symbolPanel, lanePanel, 
-            addHorsePanel, backContainer}, BoxLayout.Y_AXIS, Color.RED);
+        addHorseScreen = createPanel(new Component[]{namePanel, completeTypePanel, confidencePanel,
+            horseImageContainer, symbolPanel, imagCheckBoxContainer, lanePanel, addHorsePanel, backContainer}, BoxLayout.Y_AXIS, Color.RED);
     
         return addHorseScreen;
     }

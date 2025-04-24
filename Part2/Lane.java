@@ -1,10 +1,8 @@
 package Part2;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
-import java.awt.image.BufferedImage;
+
 
 /**
  * This is the Lane class, this class will be used to create and store information of each lane
@@ -18,8 +16,7 @@ import java.awt.image.BufferedImage;
  * @author Fahi Sabab, Al
  * @version 1.2 20/04/2025
  * 
- * - updated code to always show the finish lane at the end of the lane, added padding to the lane to incoportate the finish line.
- * - added some useful attributes to change the lane's height and finish line's width very easily.
+ * -- used the RaceGUI's scaleIcon method instead of making our own to to have better modularity and clarity.
  * 
  */
 public class Lane 
@@ -28,6 +25,7 @@ public class Lane
     Horse horse = null;
     JPanel lane = new JPanel();
     JLabel horseVisual = new JLabel();// this will move as the race goes along.
+    ImageIcon horseIcon;
     JLabel finishLine;
     // some dimensions.
     final static  int SCALE = 20;
@@ -115,7 +113,7 @@ public class Lane
         lane.setBackground(Color.GREEN); 
 
         // draw on the finish line:
-        finishLine = new JLabel(scaleIcon("Part2/images/finishLine.png", FINISHLINEWIDTH, LANEHEIGHT));
+        finishLine = new JLabel(RaceGUI.scaleIcon("Part2/images/finishLine.png", FINISHLINEWIDTH, LANEHEIGHT));
         finishLine.setBounds(distance  * SCALE, 0, FINISHLINEWIDTH, LANEHEIGHT);
 
         lane.add(finishLine);
@@ -128,8 +126,16 @@ public class Lane
     //
     private void addHorseToLane()// for now it's a character
     {
-        this.horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
-        horseVisual.setBounds(15, 20, 40, 40);// x and y values here are redundant, they will get overwritten
+        if (horse.getImagePath() == null)// user has decided to give this horse a symbol instead
+        {
+            this.horseVisual = new JLabel(String.valueOf(horse.getSymbol()));
+        }
+        else
+        {
+            this.horseIcon = RaceGUI.scaleIcon(horse.getImagePath(), 50, 50);
+            this.horseVisual = new JLabel(this.horseIcon);
+        }
+        horseVisual.setBounds(15, 20, 50, 50);// x and y values here are redundant, they will get overwritten
                                                               // by update Horse visual.
         lane.add(this.horseVisual);
         updateHorseVisual();
@@ -166,8 +172,15 @@ public class Lane
         }
     }
 
+    // this resets the horses visual to what they were displayed as before, either an image or a character.
+    //
     public void resetHorseVisual()
     {
+        if (this.horseIcon != null)// user chose to display horse as an image rather than a character
+        {
+            this.horseVisual.setIcon(this.horseIcon);
+            return;
+        }
         this.horseVisual.setText(String.valueOf(horse.getBackUpSymbol()));
     }
 
@@ -176,6 +189,7 @@ public class Lane
     public void showEliminatedHorse()
     {
         this.horseVisual.setText(String.valueOf(horse.getDeathSymbol()));
+        this.horseVisual.setIcon(null);// get rid of the image Icon.
     }
 
    
@@ -187,23 +201,5 @@ public class Lane
         lane.revalidate();
         lane.repaint();
     }
-
-     // resizes ImageIcons to our needs.
-    //
-     private ImageIcon scaleIcon(String filePath, int width, int height) 
-     {
-        try 
-        {
-            BufferedImage originalImage = ImageIO.read(new File(filePath));
-            Image scaledImage = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-            return new ImageIcon(scaledImage);
-        } 
-        catch (Exception e) 
-        {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     
 }
