@@ -20,9 +20,8 @@ import java.util.Random;
  * 
  * @author Fahi Sabab, Al
  * @version 1.6 24/4/2025
- * - added base values e.g. speed and confidence so horse can be reset after every weather track.
- * - horse now increases it's own base confidence when it wins.
- * - added setter and getter methods to keep track of how much a horse has won or lost.
+ * 
+ * - added in items to horse class which will affect how it's stats are changed on various factors.
  */
 public class Horse
 {
@@ -41,6 +40,7 @@ public class Horse
     // (so weather conditions don't stack, but wins/ losses should stack with base speed.)
     private int baseSpeed = speed;
     private double baseConfidence;
+    private String item;
     private static final Map<String, Integer> TYPETOSPEED = new HashMap<String, Integer>();
     static {
         TYPETOSPEED.put("Arabian", 1);
@@ -53,7 +53,7 @@ public class Horse
     /*
      * Constructor for objects of class Horse
      */
-    public Horse(char horseSymbol, String horseName, double horseConfidence, String type)
+    public Horse(char horseSymbol, String horseName, double horseConfidence, String type, String item)
     {
         // initialise instance variables
         this.horseSymbol = horseSymbol;
@@ -64,6 +64,7 @@ public class Horse
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
+        this.item = item;
         if (!type.equals("Wild"))
         {
             this.speed = TYPETOSPEED.get(type);
@@ -75,7 +76,7 @@ public class Horse
      /*
      * Constructor for objects of class Horse, but it takes an image path for representation instead of a symbol/ char.
      */
-    public Horse(String imagePath, String horseName, double horseConfidence, String type)
+    public Horse(String imagePath, String horseName, double horseConfidence, String type, String item)
     {
         // initialise instance variables
         this.horseImagePath = imagePath;
@@ -86,6 +87,7 @@ public class Horse
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
+        this.item = item;
 
         if (!type.equals("Wild"))
         {
@@ -174,6 +176,13 @@ public class Horse
     {
         return this.baseSpeed;
     }
+
+    // This function returns of what item the horse is currently holding:
+    //
+    public String getItem()
+    {
+        return this.item;
+    }
     
     // returns a boolean value, depicting if the horse has fallen or not, returns true if it has fallen, false otherwise.
     //
@@ -259,7 +268,11 @@ public class Horse
         if (wins >=0)
         {
             this.wins = wins;
-            this.setBaseConfidence(this.getBaseConfidence() * 1.2);// increase the base confidence.
+            if (!(this.item.equals("winner's saddle")))
+            {   
+                this.setBaseConfidence(this.getBaseConfidence() * 1.2);// increase the base confidence.
+                System.out.println(this.name + "base confidence has increased");
+            }
         }
     }
 
@@ -277,21 +290,36 @@ public class Horse
     public void fall()
     {
         this.hasFallen = true;
-        this.setBaseConfidence(this.getBaseConfidence() * 0.9);
+        if (!(this.item.equals("winner's saddle")))
+        {
+            this.setBaseConfidence(this.getBaseConfidence() * 0.7);
+            System.out.println(this.name + "base confidence has decreased");
+        }
     }
 
     // incrments horse's current distance travelled by one
     //
     public void moveForward()
     {
+        double baseMovement = this.distanceTravelled + getSpeed();
+        if (this.type.equals("Speedy Horseshoe"))
+        {
+            baseMovement++;
+        }
+
+        if (this.type.equals("Balanced Horseshoe"))
+        {
+            baseMovement--;
+        }
+
         if (!this.type.equals("Wild"))
         {
-            this.distanceTravelled = this.distanceTravelled  + getSpeed();
+            this.distanceTravelled = baseMovement;
         }
         else
         {
             Random randomMovement = new Random();
-            this.distanceTravelled = this.distanceTravelled + getSpeed() + randomMovement.nextInt(5);
+            this.distanceTravelled = baseMovement + randomMovement.nextInt(5);
         }
     }
     // reset's the horse, except for it's confidence (i.e distance travelled and hasFallen attributes are back to their default)

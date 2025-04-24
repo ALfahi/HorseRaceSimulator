@@ -8,6 +8,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeListener;
 import java.text.NumberFormat;
+import java.util.HashMap;
 import javax.swing.text.NumberFormatter;
 import java.io.*;
 import java.util.List;
@@ -20,10 +21,10 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.10 24/04/2025
+ * @version 1.11 24/04/2025
  * 
- * - added in weather conditions which affects horse stats, after every race, the horse stats are reset to the base values
- *  so that the weather conditions can't stack (doesn't apply to wins/losses, they increase/ decrease the base values.)
+ * - current stats page now displays what item the horse is holding.
+ * - fixed bug of statsPanel not rerendering from the race screen.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -169,12 +170,13 @@ public class RaceGUI
         JLabel divider = new JLabel("------------------------------------------------------------");
         JLabel typeLabel = new JLabel("Type: " + horse.getType());
         JLabel confidenceLabel = new JLabel("current Confidence: " + (int)(horse.getConfidence() * 100) + "%");// add held item below.
+        JLabel itemLabel = new JLabel("current Item: " + horse.getItem());
         JLabel winsLabel = new JLabel("Wins: " + horse.getWins());
         JLabel lossesLabel = new JLabel("Losses: " + horse.getLosses());
-        JLabel space = new JLabel("");// just adds a space below so thatthe different stats aren't too close together.
+        JLabel space = new JLabel(" ");// just adds a space below so that the different stats aren't too close together.
 
 
-        JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, confidenceLabel, winsLabel, lossesLabel, 
+        JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, confidenceLabel, itemLabel, winsLabel, lossesLabel, 
         space, space}, BoxLayout.Y_AXIS, null);
         return horseStats;
     }
@@ -346,6 +348,25 @@ public class RaceGUI
         }
     }
 
+    // this function will change the text on the label for each of the options that's also passed in.
+    // pre-condition: length of options and answers are the same.
+    //
+    private void changeLabelInformation(String[] options, String[]answers, JLabel label, String answer)
+    {
+        HashMap<String, String> convertOptionsToAnswers = new HashMap<String, String>();
+        if (options.length != answers.length)
+        {
+            System.out.println("sorry but size of options and answers must be the same.");
+            return;
+        }
+        for (int i =0; i < options.length; i++)
+        {
+            convertOptionsToAnswers.put(options[i], answers[i]);
+
+        }
+        label.setText(convertOptionsToAnswers.get(answer));
+    }
+
     // This function just makes it so that the user can't add a horse if the race tracks are full, otherwise it redirects into the
     // add horse page.
     //
@@ -390,6 +411,7 @@ public class RaceGUI
         String selectedLane = "";
         String type = (String) ((JComboBox<String>) components[4]).getSelectedItem(); // this stores the horse type that the user picked.
         boolean isSymbolEnabled = ((JCheckBox)components[5]).isSelected();// this stores the user's checkbox answer.
+        String item = (String)((JComboBox<String>) components[6]).getSelectedItem();
         
         // we pass in the selected array, rather than keeping it inside components just so we always get the most up to date image
         // that the user picked.
@@ -429,11 +451,11 @@ public class RaceGUI
         Horse horse;
         if (isSymbolEnabled)
         {
-            horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence, type);
+            horse = new Horse(horseSymbol.charAt(0), horseName, horseConfidence, type, item);
         }
         else
         {
-            horse = new Horse(horseImagePath, horseName, horseConfidence, type);
+            horse = new Horse(horseImagePath, horseName, horseConfidence, type, item);
         }
         race.addHorse(horse, lane);
         editTrack.refresh();
@@ -501,6 +523,9 @@ public class RaceGUI
     //
     private void changeHorseTypeSlider (String type, JSlider slider, JLabel label)
     {
+        String[] options = { "Arabian", "Thoroughbred", "Quarter Horse", "Wild" };
+        String[] answers = { "Arabian: speed multiplier of 1", "Thoroughbred: speed multiplier of 3", 
+        "Quarter Horse: speed multiplier of 2", "Wild: speed multiplier between 0 and 4 (random each step it takes)"};
         // creating some default max and min values for slider as a fallback
         int min = 300;
         int max = 900;
@@ -508,26 +533,24 @@ public class RaceGUI
         {
             min = 200;
             max = 700;
-            label.setText(type + ": speed multiplier of 1");
         }
         else if (type.equals("Thoroughbred"))
         {
             min = 700;
             max = 1000;
-            label.setText(type + ": speed multiplier of 3");
         }
         else if (type.equals("Quarter Horse"))
         {
             min = 300;
             max = 600;
-            label.setText(type + ": speed multiplier of 2");
         }
         else// it's a wild horse
         {
             min = 300;
             max = 900;
-            label.setText(type + ": speed multiplier between 0 and 4 (random each step it takes)");
         }
+        // change the label:
+        changeLabelInformation(options, answers, label, type);
 
         slider.setMaximum(max);
         slider.setMinimum(min);
@@ -769,6 +792,20 @@ public class RaceGUI
         imagCheckBox.addActionListener(e -> toggleSymbolPicker(imagCheckBox, horseImageButtons, characterInput));
         JPanel imagCheckBoxContainer = createPanel(new Component[]{imagCheckBox}, new FlowLayout(FlowLayout.LEFT), null);
     
+        // creating the jBox to select an item for the horse.
+        JLabel itemLabel = new JLabel("Choose an item (optional):");
+        String[] itemTypes = {"No Item", "Weather proof jacket", "Speedy Horseshoe", "Balanced Horseshoe", "winner's saddle"};
+        JComboBox<String> itemSelector = new JComboBox<>(itemTypes);
+        // a label to tell user what each item does.
+        JLabel itemInfoLabel = new JLabel("This horse will have no items.");
+
+        String[] Itemdescriptions = {"This horse will not have an item", "Horse's stats will be unaffected by weather", 
+        "Increases horse's speed stat by 1, but more likley to fall", "decreases horses speed stat by 1, but less likley to fall",
+        "Horse's confidence will not decrease or increase when winning or losing."};
+        itemSelector.addActionListener(e -> changeLabelInformation(itemTypes, Itemdescriptions, itemInfoLabel, 
+        (String) itemSelector.getSelectedItem()));
+        JPanel itemPanel = createPanel(new Component[]{itemLabel, itemSelector}, new FlowLayout(FlowLayout.LEFT),null);
+        itemPanel = createPanel(new Component[]{itemPanel, itemInfoLabel}, new GridLayout(2, 1), null);
     
         JLabel laneLabel = new JLabel("Please pick one of the following empty lanes");
         JPanel lanePanel = createPanel(new Component[]{laneLabel,this.availableLanes}, new FlowLayout(FlowLayout.LEFT), null);
@@ -776,7 +813,8 @@ public class RaceGUI
         // add horse button panel
 
         // array of all inputs that need validating.
-        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector, imagCheckBox};// error is here, it takes in the coded selected value, NOT the changed one after user clicks button.
+        Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector, imagCheckBox,
+        itemSelector};
         // solution: we need to dynamically built the inputs array to get that fresh selected[0] value.
         JButton addHorseButton = new Button("add horse", template).getJButton();
         addHorseButton.addActionListener(e -> addFormHorse(inputs, selected, cardLayout, cardContainer, "raceSetupScreen"));
@@ -787,7 +825,7 @@ public class RaceGUI
         JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
 
         addHorseScreen = createPanel(new Component[]{namePanel, completeTypePanel, confidencePanel,
-            horseImageContainer, symbolPanel, imagCheckBoxContainer, lanePanel, addHorsePanel, backContainer}, BoxLayout.Y_AXIS, Color.RED);
+            horseImageContainer, symbolPanel, imagCheckBoxContainer,itemPanel ,lanePanel, addHorsePanel, backContainer}, BoxLayout.Y_AXIS, Color.RED);
     
         return addHorseScreen;
     }
@@ -801,7 +839,7 @@ public class RaceGUI
 
     // create the other buttons:
     Button replayButton = new Button("replay reace", template);
-    replayButton.addAction(e -> startRaceAnimation());
+    replayButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
 
     // scrollPanes to store both the racce track and also the stats
     JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
@@ -939,6 +977,9 @@ public class RaceGUI
                 this.currentStatsContainer.add(createHorseStatsPanel(race.getLane(i).getHorse() , i + 1));
             }
         }
+        
+        this.currentStatsContainer.revalidate();
+        this.currentStatsContainer.repaint();
     }
 
     /*********** getters */

@@ -12,10 +12,8 @@ import java.util.Random;
  * @author McRaceface, Fahi Sabab, Al
  * @version 1.15 10/4/2025
  * 
- * - added in weather conditions to the race.
- * - weather conditions now affect horse's stats e.g. confidence, speed, fall chance.
- * - this method no longer increases horse's base confidecne after it wins, this is now handled internally by the horse class itself.
- *
+ * 
+ * - added in logic to change how horse falls depending on what item it is holding.
  */
 public class Race
 {
@@ -30,12 +28,12 @@ public class Race
     private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
     static {
         // double values are as follows: confidence (multiplier), speed (additivie), fall chance (multiplier)
-        // higher fall chance, more likley horse is to fall.
+        // smaller fall chance, more likley horse is to fall.
         AllWEATHER.put("Normal", new double[]{1, 0, 1});
-        AllWEATHER.put("Rainy", new double[]{0.85, 0, 1.2});
+        AllWEATHER.put("Rainy", new double[]{0.85, 0, 0.8});
         AllWEATHER.put("Sunny", new double[]{1.25, 0, 1});
-        AllWEATHER.put("Muddy", new double[]{1, -1, 0.8});
-        AllWEATHER.put("Icy", new double[]{0.8, -1, 1.5});
+        AllWEATHER.put("Muddy", new double[]{1, -1, 1.2});
+        AllWEATHER.put("Icy", new double[]{0.8, -1, 0.5});
     }
 
     /**
@@ -126,6 +124,15 @@ public class Race
      */
     private void moveHorse(Horse theHorse)
     {
+        double baseMultiplier = 1.0;
+        if (theHorse.getItem().equals("Speedy Horseshoe"))
+        {
+            baseMultiplier = 0.75;
+        }
+        if (theHorse.getItem().equals("Balanced Horseshoe"))
+        {
+            baseMultiplier = 1.25;
+        }
         if  (!theHorse.hasFallen())
         {
             if (Math.random() < theHorse.getConfidence())
@@ -134,8 +141,8 @@ public class Race
             }
 
             // consider the falling chance from the specific weather.
-            // we can add if statement here later when items are introduced.
-            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence() * AllWEATHER.get(this.currentWeather)[2]))
+            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence() * AllWEATHER.get(this.currentWeather)[2]
+             * baseMultiplier))
             {
                 theHorse.fall();
                 remainingHorses --;
@@ -191,10 +198,13 @@ public class Race
                 horse.goBackToStart();
                 double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
                 double speedModifier = AllWEATHER.get(this.currentWeather)[1];
-                // applying weather modifiers to horses.
-                horse.setConfidence(horse.getConfidence() * confidenceModifier);
-                horse.setSpeed(horse.getSpeed() + (int) speedModifier);
-                
+                // applying weather modifiers to horses, but only if the horse isn't wearing the weather proof jacket.
+                System.out.println(horse.getItem());
+                if (!horse.getItem().equals("Weather proof jacket"))
+                {
+                    horse.setConfidence(horse.getConfidence() * confidenceModifier);
+                    horse.setSpeed(horse.getSpeed() + (int) speedModifier);
+                }
                 // reset the horse's visual to the normal horse symbol, and move it back to the start of the lane.
                 lanes.get(i).resetHorseVisual();
                 lanes.get(i).updateHorseVisual();
@@ -383,7 +393,7 @@ public class Race
     public Horse getLeadHorse()
     {
         double maxDistance = -1;
-        Horse leadHorse = new Horse('a', null, maxDistance, "Arabian");
+        Horse leadHorse = new Horse('a', null, maxDistance, "Arabian", "no Item");
         for (int i =0; i < currentHorses.size(); i++)
         {
             if (currentHorses.get(i).getDistanceTravelled() > maxDistance)
