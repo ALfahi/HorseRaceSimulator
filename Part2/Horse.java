@@ -1,6 +1,7 @@
 package Part2;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Random;
 /**
  * This is the Horse class, horses are instantiated from this class, they have the follwoing attributes:
@@ -49,6 +50,7 @@ public class Horse
     }
     private int wins;
     private int losses;
+    private int racePosition;
       
     /*
      * Constructor for objects of class Horse
@@ -205,6 +207,13 @@ public class Horse
         return this.wins;
     }
 
+    // this function returns the most recent position that the horse has placed.
+    //
+    public int getMostRecentPosition()
+    {
+        return racePosition;
+    }
+
 
     // this function gets passed in a value, and then the current confidence of the horse is set to the new value,
     // if the new value is > 1, the program will just make it be 1 and if the new value is < 0, the program will set it to 0, before
@@ -259,6 +268,13 @@ public class Horse
             this.losses = loss;
         }
 
+    }
+
+    // this function adds another position to what the horse has placed.
+    //
+    public void setPosition(int position)
+    {
+       this.racePosition = position;
     }
 
     // this function sets the horse's winns attribute to the passed in value.

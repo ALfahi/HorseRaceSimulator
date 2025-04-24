@@ -12,6 +12,9 @@ import java.util.HashMap;
 import javax.swing.text.NumberFormatter;
 import java.io.*;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * This is the RaceGUI class, it will provide a GUI interface for the user for the horse race simulation.
@@ -886,7 +889,7 @@ public class RaceGUI
     {
         resetRaceView();
         System.out.println("before");
-        for (int i = 0; i < race.getTotalLanes(); i++)
+       /*  for (int i = 0; i < race.getTotalLanes(); i++)
         {
             if (race.getLane(i).getHorse() != null)
             {
@@ -895,11 +898,13 @@ public class RaceGUI
                 horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
             }
         }
+        */
         race.setRandomWeather();
         raceTrack.setWeather(race.getCurrentWeather());
         race.resetDistanceAllHorses();
         System.out.println("after");
 
+        /* 
         for (int i = 0; i < race.getTotalLanes(); i++)
         {
             if (race.getLane(i).getHorse() != null)
@@ -909,6 +914,7 @@ public class RaceGUI
                 horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
             }
         }
+        */
 
         // change track background.
         refreshCurrentStats();
@@ -918,10 +924,12 @@ public class RaceGUI
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     
-            if (race.checkWin() || race.getRemainingHorses() == 0) {
+            if (race.checkWin() || race.getRemainingHorses() == 0) 
+            {
                 ((Timer) e.getSource()).stop();// stop the race since either all horse eliminated or someone has won.
     
-                if (race.getRemainingHorses() == 0) {
+                if (race.getRemainingHorses() == 0) 
+                {
                     JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
                 }
             }
@@ -982,6 +990,20 @@ public class RaceGUI
         this.currentStatsContainer.repaint();
     }
 
+
+    /****** other functions *********/
+
+    // this function will generate the current daate-time when this function is called.
+    //
+    private String generateDateTime()
+    {
+        LocalDateTime currenTime = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");// format the value to a more
+                                                                                                // readable format.
+        String formattedDateTime = currenTime.format(formatter);
+        System.out.println("Formatted: " + formattedDateTime);
+        return formattedDateTime;
+    }
     /*********** getters */
 
     // this function just gets the height of the user's screen.

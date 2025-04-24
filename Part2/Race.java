@@ -24,6 +24,9 @@ public class Race
     private final int MAXDISTANCE = 30;
     private final int  MINDISTANCE= 100;
     private int remainingHorses = 0;
+    private String raceStartTime;
+    private int fastestTime = 0;
+    private String fastestTimeHorse = null;// name of the horse who has the most fastest time.
     private String currentWeather = "Normal";
     private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
     static {
@@ -388,6 +391,12 @@ public class Race
         return this.currentWeather;
     }
 
+    // this function returns the stored race-time, (the first time the race was started from the race set up screen).
+    //
+    public String getRaceStartTime()
+    {
+        return this.raceStartTime;
+    }
     // this function returns the lead horse.
     //
     public Horse getLeadHorse()
@@ -432,6 +441,13 @@ public class Race
         {
             lanes.get(i).setDistance(distance);
         }
+    }
+
+    // this function will set the raceStartTime attribute:
+    //
+    public void setRaceStartTime(String newTime)
+    {
+        this.raceStartTime = newTime;
     }
 }
 
