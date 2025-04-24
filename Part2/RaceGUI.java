@@ -20,9 +20,9 @@ import java.util.List;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.9 23/04/2025
+ * @version 1.10 24/04/2025
  * 
- * - added feature where user can now choose to play as some predefined horse images, rather than just symbols.
+ * - current horse stats can now be seen from the race screen.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -43,6 +43,7 @@ public class RaceGUI
     // data (therefore they are all synced).
     private static Track raceTrack = new Track(race.getAllLanes());
     private static Track editTrack = new Track(race.getAllLanes());
+    private JPanel currentStatsContainer =  createPanel(new Component[]{}, BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
 
@@ -135,14 +136,18 @@ public class RaceGUI
 
     // Overloaded createPanel method that uses BoxLayout
     //
-    private JPanel createPanel(Component[] components, int boxLayoutAxis, Color backgroundColor) 
+    private JPanel createPanel(Component[] components, int boxLayoutAxis, Color color) 
     {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, boxLayoutAxis));
         
-        if (backgroundColor != null) 
+        if (color != null) 
         {
-            panel.setBackground(backgroundColor);
+            panel.setBackground(color);
+        }
+        else// make it transparent
+        {
+            panel.setOpaque(false);
         }
 
          // add in the components.
@@ -152,6 +157,25 @@ public class RaceGUI
          }
 
         return panel;
+    }
+
+    // this function is used to create a stats panel for the horses, it will only show the current stats (won't be used to
+    // to show historical data)
+    //
+    private JPanel createHorseStatsPanel(Horse horse, int laneNumber)
+    {
+        JLabel title = new JLabel("Name: " + horse.getName() + "                              " + "Lane: " + laneNumber );
+        JLabel divider = new JLabel("------------------------------------------------------------");
+        JLabel typeLabel = new JLabel("Type: " + horse.getType());
+        JLabel confidenceLabel = new JLabel("current Confidence: " + (int)(horse.getConfidence() * 100) + "%");// add held item below.
+        JLabel winsLabel = new JLabel("Wins: " + horse.getWins());
+        JLabel lossesLabel = new JLabel("Losses: " + horse.getLosses());
+        JLabel space = new JLabel("");// just adds a space below so thatthe different stats aren't too close together.
+
+
+        JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, confidenceLabel, winsLabel, lossesLabel, 
+        space, space}, BoxLayout.Y_AXIS, null);
+        return horseStats;
     }
 
     // this allows us to make icons into buttons
@@ -354,6 +378,7 @@ public class RaceGUI
         // refresh the racetrack before accessing the page
         race.resetDistanceAllHorses();
         raceTrack.refresh();
+        refreshCurrentStats();
         redirectScreen(cardLayout, cardContainer, screenName);
         startRaceAnimation();
 
@@ -787,10 +812,8 @@ public class RaceGUI
 
     // scrollPanes to store both the racce track and also the stats
     JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
-    JScrollPane statsJScrollPane = new JScrollPane(
-        createPanel(new Component[]{}, new FlowLayout(), Color.decode("#FFFDD0"))
-    );
-
+    JScrollPane statsJScrollPane = new JScrollPane(this.currentStatsContainer);
+    refreshCurrentStats();// make sure to refresh the stats container with all the new information.
     // enable scrollbars as needed
     raceTrackJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
     raceTrackJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -832,6 +855,7 @@ public class RaceGUI
     {
         resetRaceView();
         race.resetDistanceAllHorses();
+        refreshCurrentStats();
         JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
         Timer raceTimer = new Timer(100, e -> 
         {
@@ -882,6 +906,20 @@ public class RaceGUI
             if (horizontalScrollBar != null) 
             {
                 horizontalScrollBar.setValue(0); // Reset the scroll position
+            }
+        }
+    }
+
+    // this function will refresh the current stats panel's data.
+    //
+    private void refreshCurrentStats()
+    {
+        this.currentStatsContainer.removeAll();
+        for (int i = 0; i <race.getTotalLanes(); i++)
+        {
+            if (race.getLane(i).getHorse() != null)
+            {
+                this.currentStatsContainer.add(createHorseStatsPanel(race.getLane(i).getHorse() , i + 1));
             }
         }
     }

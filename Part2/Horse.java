@@ -41,6 +41,8 @@ public class Horse
         TYPETOSPEED.put("Quarter Horse", 2);
         TYPETOSPEED.put("Thoroughbred", 3);
     }
+    private int wins;
+    private int losses;
       
     /*
      * Constructor for objects of class Horse
@@ -126,6 +128,13 @@ public class Horse
         return this.horseImagePath;
     }
 
+    // this returns the type of horse.
+    //
+    public String getType()
+    {
+        return this.type;
+    }
+
     // This functions gets the speed multiplier of the horse depending on it's type, if it's a wild horse, then speed is random.
     //
     public int getSpeed()
@@ -144,6 +153,20 @@ public class Horse
     public boolean hasFallen()
     {
         return this.hasFallen;
+    }
+
+    // This function is used to get the amount a this horse has lost a race:
+    //
+    public int getLosses()
+    {
+        return this.losses;
+    }
+
+    // This function is used to get the amount of times that this horse has won a race:
+    //
+    public int getWins()
+    {
+        return this.wins;
     }
 
 
@@ -171,6 +194,27 @@ public class Horse
     public void setSymbol(char newSymbol)
     {
         this.horseSymbol = newSymbol;
+    }
+
+    // this function sets the horse's loss attribute to the passed in value.
+    //
+    public void setLoss(int loss)
+    {
+        if (loss >= 0)
+        {
+            this.losses = loss;
+        }
+
+    }
+
+    // this function sets the horse's winns attribute to the passed in value.
+    //
+    public void setWin(int wins)
+    {
+        if (wins >=0)
+        {
+            this.wins = wins;
+        }
     }
     
     /**************other methods for Horse class. **********/

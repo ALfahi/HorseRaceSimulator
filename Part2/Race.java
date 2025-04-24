@@ -185,6 +185,17 @@ public class Race
                 win = true;
                 Horse winner = currentHorses.get(i);
                 winner.setConfidence(winner.getConfidence() * 1.2);
+                winner.setWin(winner.getWins() + 1);
+
+                // now also go back to every  other horse and increase their loss count:
+                for (int j = 0; j < currentHorses.size();j++)
+                {
+                    Horse horse = currentHorses.get(j);
+                    if (!horse.equals(winner))
+                    {
+                        horse.setLoss(horse.getLosses() + 1);
+                    }
+                }
             }
         }
         return win;
