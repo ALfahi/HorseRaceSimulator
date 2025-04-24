@@ -14,9 +14,9 @@ import java.awt.*;
  * - trackCondition: what type of condition the track has.
  * 
  * @author Fahi Sabab, Al
- * @version 1.2 20/04/2025
+ * @version 1.3 24/04/2025
  * 
- * -- used the RaceGUI's scaleIcon method instead of making our own to to have better modularity and clarity.
+ * - added a setter method to change the lane's background color depending on the track's weather condition.
  * 
  */
 public class Lane 
@@ -31,7 +31,6 @@ public class Lane
     final static  int SCALE = 20;
     final int FINISHLINEWIDTH = 50;
     final int LANEHEIGHT = 60;// lane width depends on the race length, so don't include here.
-    private String trackCondition;
 
     // constructor for this class:
     public Lane(int laneNumber, int distance)
@@ -122,6 +121,13 @@ public class Lane
     
     }
 
+    public void changeColor(Color color)
+    {
+        lane.setBackground(color);// set it to new color.
+        update();
+
+    }
+
     // This functions appends the horse's symbol to the lane
     //
     private void addHorseToLane()// for now it's a character
@@ -165,9 +171,9 @@ public class Lane
         if (horse != null && horseVisual != null) 
         {
             int paddingLeft = (2 * SCALE);
-            int position = (horse.getDistanceTravelled() * SCALE) + paddingLeft; // scale: 1 step/ movement is 20px
+            double position = (horse.getDistanceTravelled() * SCALE) + paddingLeft; // scale: 1 step/ movement is 20px
             int yCenter = (lane.getPreferredSize().height - horseVisual.getPreferredSize().height) / 2;
-            horseVisual.setLocation(position, yCenter);
+            horseVisual.setLocation((int)position, yCenter);
             update();
         }
     }

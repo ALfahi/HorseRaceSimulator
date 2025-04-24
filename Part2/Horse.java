@@ -1,5 +1,4 @@
 package Part2;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -20,8 +19,10 @@ import java.util.Random;
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.5 24/4/2025
- * - horses can now support image paths as an alternative way to be displayed in the GUI screen.
+ * @version 1.6 24/4/2025
+ * - added base values e.g. speed and confidence so horse can be reset after every weather track.
+ * - horse now increases it's own base confidence when it wins.
+ * - added setter and getter methods to keep track of how much a horse has won or lost.
  */
 public class Horse
 {
@@ -32,9 +33,14 @@ public class Horse
     private char horseSymbol;
     private char backupSymbol;
     private final char deathSymbol = '❌';
-    private int distanceTravelled;
+    private double distanceTravelled;
+    private int speed = 0;
     private boolean hasFallen;
     private double confidence;
+    // creating some base stat values which will be used to reset horse stats prior to weather conditions
+    // (so weather conditions don't stack, but wins/ losses should stack with base speed.)
+    private int baseSpeed = speed;
+    private double baseConfidence;
     private static final Map<String, Integer> TYPETOSPEED = new HashMap<String, Integer>();
     static {
         TYPETOSPEED.put("Arabian", 1);
@@ -54,9 +60,15 @@ public class Horse
         this.backupSymbol = this.horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
+        this.baseConfidence = confidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
+        if (!type.equals("Wild"))
+        {
+            this.speed = TYPETOSPEED.get(type);
+            this.baseSpeed = TYPETOSPEED.get(type);// base speed for wild horse is random each turn, so we ignore it here.
+        }
        
     }
 
@@ -70,9 +82,16 @@ public class Horse
         this.backupSymbol = this.horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
+        this.baseConfidence = confidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
+
+        if (!type.equals("Wild"))
+        {
+            this.speed = TYPETOSPEED.get(type);
+            this.baseSpeed = TYPETOSPEED.get(type);// base speed for wild horse is random each turn, so we ignore it here.
+        }
        
     }
     
@@ -85,10 +104,17 @@ public class Horse
     {
         return this.confidence;
     }
+
+    // returns the base confidence of the horse (double)
+    //
+    public double getBaseConfidence()
+    {
+        return this.baseConfidence;
+    }
     
     //returns the current distance travelled of the horse as an integer.
     //
-    public int getDistanceTravelled()
+    public double getDistanceTravelled()
     {
         return this.distanceTravelled;
     }
@@ -135,17 +161,18 @@ public class Horse
         return this.type;
     }
 
-    // This functions gets the speed multiplier of the horse depending on it's type, if it's a wild horse, then speed is random.
+    // This functions returns the speed with the modifier included.
     //
     public int getSpeed()
     {
-        Random roll = new Random();
-        if (!type.equals("Wild"))
-        {
-            return TYPETOSPEED.get(this.type);
-        }
-        // it's a wild horse.
-        return roll.nextInt(5);// 0 - 4 is the multipluer for horses of wild types.
+       return this.speed;
+    }
+
+    // this function returns the base speed multiplier.
+    //
+    public int getBaseSpeed()
+    {
+        return this.baseSpeed;
     }
     
     // returns a boolean value, depicting if the horse has fallen or not, returns true if it has fallen, false otherwise.
@@ -188,6 +215,24 @@ public class Horse
         this.confidence = newConfidence;
        
     }
+
+    // this function is used to set the base confidence:
+    //
+    public void setBaseConfidence(double newConfidence)
+    {
+        if (newConfidence <0.0)
+        {
+            newConfidence = 0.0;
+        }
+        else if (newConfidence > 1.0)
+        {
+            newConfidence = 1.0;
+        }
+       
+        this.baseConfidence = newConfidence;
+    }
+
+    // this is used to 
     
     // set's the horse's symbol with a new symbol.
     //
@@ -214,7 +259,15 @@ public class Horse
         if (wins >=0)
         {
             this.wins = wins;
+            this.setBaseConfidence(this.getBaseConfidence() * 1.2);// increase the base confidence.
         }
+    }
+
+    // this function will allow us to set the speed of the horse.
+    //
+    public void setSpeed(int speed)
+    {
+        this.speed = speed;
     }
     
     /**************other methods for Horse class. **********/
@@ -224,14 +277,22 @@ public class Horse
     public void fall()
     {
         this.hasFallen = true;
-        this.setConfidence(this.getConfidence() * 0.9);
+        this.setBaseConfidence(this.getBaseConfidence() * 0.9);
     }
 
     // incrments horse's current distance travelled by one
     //
     public void moveForward()
     {
-        this.distanceTravelled = this.distanceTravelled  + getSpeed();
+        if (!this.type.equals("Wild"))
+        {
+            this.distanceTravelled = this.distanceTravelled  + getSpeed();
+        }
+        else
+        {
+            Random randomMovement = new Random();
+            this.distanceTravelled = this.distanceTravelled + getSpeed() + randomMovement.nextInt(5);
+        }
     }
     // reset's the horse, except for it's confidence (i.e distance travelled and hasFallen attributes are back to their default)
     // values
@@ -240,6 +301,8 @@ public class Horse
     {
         this.distanceTravelled = 0;
         this.hasFallen = false;
+        this.setConfidence(this.getBaseConfidence());
+        this.setSpeed(this.getBaseSpeed());// this initialises the speed 
         this.setSymbol(this.getBackUpSymbol());
     }
 

@@ -1,7 +1,8 @@
 package Part2;
-
 import javax.swing.*;
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 
 /*
  * This is the Track class, this class will store all the lanes and handle both the back end and GUI aspect of the track
@@ -10,16 +11,25 @@ import java.util.*;
  * - trackPanel: this is a JPanel which stores all the lanes, it is used to visually display the lanes.
  * 
  * @author Fahi Sabab, Al
- * @version 1.1 21/04/2025
- * - the track now get's passed in a lanes arrayList which will be the same exact one as the one in the race class, makes both classes
- *  be synced.
- * - since race class adds/ removes lanes, removed every function that does not relate to the GUI.
+ * @version 1.2 24/04/2025
+ * - the track now changes all the lane's background depending on the weather.
  */
 public class Track
 {
     private List<Lane> lanes;
     private JPanel trackPanel;
     private JScrollPane trackScrollPane;
+    private String weather = "Normal";
+    private static final Map<String, Color> WEATHERBACKGROUND = new HashMap<String, Color>();
+    static 
+    {
+        WEATHERBACKGROUND.put("Normal", Color.GREEN);
+        WEATHERBACKGROUND.put("Rainy", Color.decode("#1d404f"));
+        WEATHERBACKGROUND.put("Sunny", Color.decode("#b1e868"));
+        WEATHERBACKGROUND.put("Muddy", Color.decode("#6e4224"));
+        WEATHERBACKGROUND.put("Icy", Color.decode("#95c4c9"));
+    }
+
 
     // contructor of the track class., get's passed in the Race classe's lanes attribute when constructed.
     //
@@ -78,4 +88,17 @@ public class Track
         trackPanel.revalidate();
         trackPanel.repaint();
     }
+
+    // this set's the weather background for the track.
+    //
+    public void setWeather(String weather)
+    {
+        this.weather = weather;
+        for (int i = 0; i < lanes.size(); i++)
+        {
+            lanes.get(i).changeColor(WEATHERBACKGROUND.get(weather));
+        }
+        updatePanel();
+    }
+
 }

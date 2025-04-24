@@ -22,7 +22,8 @@ import java.util.List;
  * @author Fahi Sabab, Al
  * @version 1.10 24/04/2025
  * 
- * - current horse stats can now be seen from the race screen.
+ * - added in weather conditions which affects horse stats, after every race, the horse stats are reset to the base values
+ *  so that the weather conditions can't stack (doesn't apply to wins/losses, they increase/ decrease the base values.)
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -243,8 +244,6 @@ public class RaceGUI
         {
             // increment textField.
             textField.setText(String.valueOf(race.getTotalLanes() + 1));
-
-            System.out.println("number of lanes is " + race.getTotalLanes());
             if (!minusButton.isEnabled())// if minus button was disabled before, we added in an extra lane which can be deleted
             // there enable button again.
             {
@@ -266,8 +265,6 @@ public class RaceGUI
         {
             // decrement the value in the textField.
             textField.setText(String.valueOf(race.getTotalLanes() - 1));
-
-            System.out.println("number of lanes is " + race.getTotalLanes());
             if(!plusButton.isEnabled())
             {
                 plusButton.setEnabled(true);
@@ -291,7 +288,6 @@ public class RaceGUI
             if (race.isLaneEmpty(i)) // // Lane is empty
             {  
                 this.availableLanes.addItem("Lane " + (i + 1));
-                System.out.println("Lane " + (i + 1));
             }
         }
 
@@ -355,8 +351,6 @@ public class RaceGUI
     //
     private void redirectToAddHorsePage(CardLayout cardLayout, JPanel cardContainer, String screenName)// fix error (doesn;t work)
     {
-        System.out.println(race.isLaneFull());
-        System.out.println(race.getTotalLanes());
         if (race.isLaneFull())
         {
             JOptionPane.showMessageDialog(null, "Sorry but all lanes are full!!", "Input Error", JOptionPane.ERROR_MESSAGE);
@@ -782,7 +776,6 @@ public class RaceGUI
         // add horse button panel
 
         // array of all inputs that need validating.
-        System.out.println(selected[0].getClientProperty("imagePath"));
         Component[] inputs = {horseNameInput, confidenceSlider, characterInput, this.availableLanes, typeSelector, imagCheckBox};// error is here, it takes in the coded selected value, NOT the changed one after user clicks button.
         // solution: we need to dynamically built the inputs array to get that fresh selected[0] value.
         JButton addHorseButton = new Button("add horse", template).getJButton();
@@ -854,12 +847,37 @@ public class RaceGUI
     public void startRaceAnimation() 
     {
         resetRaceView();
+        System.out.println("before");
+        for (int i = 0; i < race.getTotalLanes(); i++)
+        {
+            if (race.getLane(i).getHorse() != null)
+            {
+                Horse horse = race.getLane(i).getHorse();
+                System.out.println("speed: " + horse.getSpeed() + " base speed: " + horse.getBaseSpeed() + " base confidence " + 
+                horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
+            }
+        }
+        race.setRandomWeather();
+        raceTrack.setWeather(race.getCurrentWeather());
         race.resetDistanceAllHorses();
+        System.out.println("after");
+
+        for (int i = 0; i < race.getTotalLanes(); i++)
+        {
+            if (race.getLane(i).getHorse() != null)
+            {
+                Horse horse = race.getLane(i).getHorse();
+                System.out.println("speed: " + horse.getSpeed() + " base speed: " + horse.getBaseSpeed() + " base confidence " + 
+                horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
+            }
+        }
+
+        // change track background.
         refreshCurrentStats();
         JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
         Timer raceTimer = new Timer(100, e -> 
         {
-            followLeadHorse(raceTJScrollPane, race.getLeadHorse());
+            //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     
             if (race.checkWin() || race.getRemainingHorses() == 0) {
@@ -879,13 +897,12 @@ public class RaceGUI
     private void followLeadHorse(JScrollPane raceTrackJScrollPane, Horse leadHorse)
     {
         // Get the scroll bar and update its position
-        System.out.println(leadHorse.getDistanceTravelled());
         JScrollBar horizontalScrollBar = raceTrackJScrollPane.getHorizontalScrollBar();
         if (horizontalScrollBar != null && leadHorse != null) 
         {
             // Calculate the scroll position based on the lead horse's distance
             int maxScroll = raceTrackJScrollPane.getHorizontalScrollBar().getMaximum();
-            int leadHorsePosition = leadHorse.getDistanceTravelled() * Lane.getScale();
+            int leadHorsePosition =(int) leadHorse.getDistanceTravelled() * Lane.getScale();
     
             // Scroll only when the lead horse moves out of view (i.e., it is near the edge of the visible area)
             if (leadHorsePosition > horizontalScrollBar.getValue() + raceTrackJScrollPane.getViewport().getWidth()) 

@@ -2,14 +2,19 @@ package Part2;
 import java.lang.Math;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 /**
  * A three-horse race, each horse running in its own lane
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.14 10/4/2025
+ * @version 1.15 10/4/2025
  * 
- * - fixed bug to now check if hors distance is greather than or equal to length, rather than strictly equal.
+ * - added in weather conditions to the race.
+ * - weather conditions now affect horse's stats e.g. confidence, speed, fall chance.
+ * - this method no longer increases horse's base confidecne after it wins, this is now handled internally by the horse class itself.
  *
  */
 public class Race
@@ -21,6 +26,17 @@ public class Race
     private final int MAXDISTANCE = 30;
     private final int  MINDISTANCE= 100;
     private int remainingHorses = 0;
+    private String currentWeather = "Normal";
+    private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
+    static {
+        // double values are as follows: confidence (multiplier), speed (additivie), fall chance (multiplier)
+        // higher fall chance, more likley horse is to fall.
+        AllWEATHER.put("Normal", new double[]{1, 0, 1});
+        AllWEATHER.put("Rainy", new double[]{0.85, 0, 1.2});
+        AllWEATHER.put("Sunny", new double[]{1.25, 0, 1});
+        AllWEATHER.put("Muddy", new double[]{1, -1, 0.8});
+        AllWEATHER.put("Icy", new double[]{0.8, -1, 1.5});
+    }
 
     /**
      * Constructor for objects of class Race
@@ -41,6 +57,35 @@ public class Race
         for (int i = 0; i < numberOfLanes; i++) 
         {
             addLane();
+        }
+    }
+
+    // this function will generate a new random weather:
+    //
+    public void setRandomWeather()
+    {
+        Random roll = new Random();
+        double randomValue = roll.nextDouble();
+        if (randomValue <= 0.4) // 40% to be normal weather
+        {
+            this.currentWeather = "Normal";
+        }
+        else if(randomValue <= 0.55) // 15% to be rainy
+        {
+            this.currentWeather = "Rainy";
+        }
+
+        else if (randomValue <= 0.7)// 15% to be sunny
+        {
+            this.currentWeather = "Sunny";
+        }
+        else if(randomValue <= 0.9)// 20% to be muddy
+        {
+            this.currentWeather = "Muddy";
+        }
+        else// 10% to be icy.
+        {
+            this.currentWeather = "Icy";
         }
     }
 
@@ -88,7 +133,9 @@ public class Race
                theHorse.moveForward();
             }
 
-            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence()))
+            // consider the falling chance from the specific weather.
+            // we can add if statement here later when items are introduced.
+            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence() * AllWEATHER.get(this.currentWeather)[2]))
             {
                 theHorse.fall();
                 remainingHorses --;
@@ -142,6 +189,12 @@ public class Race
             if (horse != null)
             {
                 horse.goBackToStart();
+                double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
+                double speedModifier = AllWEATHER.get(this.currentWeather)[1];
+                // applying weather modifiers to horses.
+                horse.setConfidence(horse.getConfidence() * confidenceModifier);
+                horse.setSpeed(horse.getSpeed() + (int) speedModifier);
+                
                 // reset the horse's visual to the normal horse symbol, and move it back to the start of the lane.
                 lanes.get(i).resetHorseVisual();
                 lanes.get(i).updateHorseVisual();
@@ -184,7 +237,6 @@ public class Race
             {
                 win = true;
                 Horse winner = currentHorses.get(i);
-                winner.setConfidence(winner.getConfidence() * 1.2);
                 winner.setWin(winner.getWins() + 1);
 
                 // now also go back to every  other horse and increase their loss count:
@@ -319,12 +371,19 @@ public class Race
         return MINDISTANCE;
     }
 
+    // this function returns the current weather.
+    //
+    public String getCurrentWeather()
+    {
+        return this.currentWeather;
+    }
+
     // this function returns the lead horse.
     //
     public Horse getLeadHorse()
     {
-        int maxDistance = -1;
-        Horse leadHorse = new Horse('a', null, maxDistance, null);
+        double maxDistance = -1;
+        Horse leadHorse = new Horse('a', null, maxDistance, "Arabian");
         for (int i =0; i < currentHorses.size(); i++)
         {
             if (currentHorses.get(i).getDistanceTravelled() > maxDistance)
