@@ -5,15 +5,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Collections;
 /**
  * A three-horse race, each horse running in its own lane
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.15 10/4/2025
+ * @version 1.16 25/4/2025
  * 
  * 
- * - added in logic to change how horse falls depending on what item it is holding.
+ * - refactored code to integrate in the HorseRecord class.
  */
 public class Race
 {
@@ -208,6 +209,7 @@ public class Race
                     horse.setConfidence(horse.getConfidence() * confidenceModifier);
                     horse.setSpeed(horse.getSpeed() + (int) speedModifier);
                 }
+                horse.getHorseRecord().addConfidence(horse.getConfidence());// record confidence change.
                 // reset the horse's visual to the normal horse symbol, and move it back to the start of the lane.
                 lanes.get(i).resetHorseVisual();
                 lanes.get(i).updateHorseVisual();
@@ -250,7 +252,7 @@ public class Race
             {
                 win = true;
                 Horse winner = currentHorses.get(i);
-                winner.setWin(winner.getWins() + 1);
+                winner.setWin(winner.getHorseRecord().getWinNumber() + 1);
 
                 // now also go back to every  other horse and increase their loss count:
                 for (int j = 0; j < currentHorses.size();j++)
@@ -258,12 +260,26 @@ public class Race
                     Horse horse = currentHorses.get(j);
                     if (!horse.equals(winner))
                     {
-                        horse.setLoss(horse.getLosses() + 1);
+                        horse.setLoss(horse.getHorseRecord().getLossNumber() + 1);
                     }
                 }
             }
         }
         return win;
+    }
+
+    // this function will set the horse positions for all the horses after the race has concluded:
+    // this will work by sorting the current horse array list in terms of their distance travelled in descending order.
+    public void setPositions()
+    {
+       Collections.sort(currentHorses, (horse1, horse2) ->
+       Double.compare(horse2.getDistanceTravelled(), horse1.getDistanceTravelled()));// compare by distance travelled 
+                                                                                    //in descending order.
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            currentHorses.get(i).getHorseRecord().addPosition(i + 1);// recording position of horse.
+            // e.g. horse at first element will have a position of 1, second element will have a position of 2 and so forth.
+        }
     }
 
     /************** User validation **********/
@@ -389,6 +405,13 @@ public class Race
     public String getCurrentWeather()
     {
         return this.currentWeather;
+    }
+
+    // returns an arrayList of all active horses.
+    //
+    public List<Horse> getCurrentHorses()
+    {
+        return this.currentHorses;
     }
 
     // this function returns the stored race-time, (the first time the race was started from the race set up screen).

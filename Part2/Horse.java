@@ -20,9 +20,11 @@ import java.util.Random;
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.6 24/4/2025
+ * @version 1.8 25/4/2025
  * 
- * - added in items to horse class which will affect how it's stats are changed on various factors.
+ * - made a base consturctor and then called that base constructor on the other two constructors (one that uses imagePath, 
+ *  and the other which uses symbols) to prevent redundant copying of code.
+ * - refacotred code to get rid of redundant attributes and instead let the record itself handle it (reduces duplicate code).
  */
 public class Horse
 {
@@ -48,55 +50,48 @@ public class Horse
         TYPETOSPEED.put("Quarter Horse", 2);
         TYPETOSPEED.put("Thoroughbred", 3);
     }
-    private int wins;
-    private int losses;
-    private int racePosition;
+    private double finishTime = -1;
+
+    private HorseRecord record;// a personal record for the horse class.
       
     /*
-     * Constructor for objects of class Horse
+     * Constructors for objects of class Horse
      */
-    public Horse(char horseSymbol, String horseName, double horseConfidence, String type, String item)
+    
+    // Base constructor holding shared logic
+    private Horse(String horseName, double horseConfidence, String type, String item) 
     {
-        // initialise instance variables
-        this.horseSymbol = horseSymbol;
-        this.backupSymbol = this.horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
-        this.baseConfidence = confidence;
+        this.baseConfidence = horseConfidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
         this.item = item;
-        if (!type.equals("Wild"))
-        {
+
+        if (!type.equals("Wild")) {
             this.speed = TYPETOSPEED.get(type);
-            this.baseSpeed = TYPETOSPEED.get(type);// base speed for wild horse is random each turn, so we ignore it here.
+            this.baseSpeed = this.speed;
         }
-       
+
+        // populate the horse record with initial values
+        this.record = new HorseRecord(horseName, type, item);
+        this.record.addConfidence(horseConfidence);
     }
 
-     /*
-     * Constructor for objects of class Horse, but it takes an image path for representation instead of a symbol/ char.
-     */
-    public Horse(String imagePath, String horseName, double horseConfidence, String type, String item)
+    // constructor which uses symbols to display horse:
+    public Horse(char horseSymbol, String horseName, double horseConfidence, String type, String item) 
     {
-        // initialise instance variables
+        this(horseName, horseConfidence, type, item);
+        this.horseSymbol = horseSymbol;
+        this.backupSymbol = horseSymbol;
+    }
+    
+    // consturctor which uses an imagePath to display horse:
+    public Horse(String imagePath, String horseName, double horseConfidence, String type, String item) 
+    {
+        this(horseName, horseConfidence, type, item);
         this.horseImagePath = imagePath;
-        this.backupSymbol = this.horseSymbol;
-        this.name = horseName;
-        this.confidence = horseConfidence;
-        this.baseConfidence = confidence;
-        this.distanceTravelled = 0;
-        this.hasFallen = false;
-        this.type = type;
-        this.item = item;
-
-        if (!type.equals("Wild"))
-        {
-            this.speed = TYPETOSPEED.get(type);
-            this.baseSpeed = TYPETOSPEED.get(type);// base speed for wild horse is random each turn, so we ignore it here.
-        }
-       
     }
     
     
@@ -193,25 +188,11 @@ public class Horse
         return this.hasFallen;
     }
 
-    // This function is used to get the amount a this horse has lost a race:
+    // this function returns the record.
     //
-    public int getLosses()
+    public HorseRecord getHorseRecord()
     {
-        return this.losses;
-    }
-
-    // This function is used to get the amount of times that this horse has won a race:
-    //
-    public int getWins()
-    {
-        return this.wins;
-    }
-
-    // this function returns the most recent position that the horse has placed.
-    //
-    public int getMostRecentPosition()
-    {
-        return racePosition;
+        return this.record;
     }
 
 
@@ -259,31 +240,24 @@ public class Horse
         this.horseSymbol = newSymbol;
     }
 
-    // this function sets the horse's loss attribute to the passed in value.
+    // this function sets the rececords loss numbber to the new passed in number.
     //
     public void setLoss(int loss)
     {
         if (loss >= 0)
         {
-            this.losses = loss;
+            record.setLossNumber(loss);
         }
 
     }
 
-    // this function adds another position to what the horse has placed.
-    //
-    public void setPosition(int position)
-    {
-       this.racePosition = position;
-    }
-
-    // this function sets the horse's winns attribute to the passed in value.
+    // this function increases the horse's confidence if it has won (and not wearing winner's saddle), it also adds it to the record.
     //
     public void setWin(int wins)
     {
         if (wins >=0)
         {
-            this.wins = wins;
+            this.record.setWinNumber(wins);
             if (!(this.item.equals("winner's saddle")))
             {   
                 this.setBaseConfidence(this.getBaseConfidence() * 1.2);// increase the base confidence.
@@ -299,6 +273,22 @@ public class Horse
         this.speed = speed;
     }
     
+    // this function will set the new fastest finish time, but only if it's smaller than the previosu fastest finish time.
+    //
+    public void setFinishTime(long finishTime)// convert into seconds which is a more readable format.
+    {
+        finishTime = finishTime / 1000;
+        this.finishTime = finishTime ;// update most recent finish time.
+        if ((finishTime < this.record.getFastestFinishTime()) && (this.record.getFastestFinishTime() != -1))
+        {
+            this.record.setFastestFinishTime(finishTime);
+        }
+        else if (this.record.getFastestFinishTime()  == -1)// the horse hasn't won yet, so any finish time is it's fastest finish time.
+        {
+            this.record.setFastestFinishTime(finishTime);
+        }
+    }
+
     /**************other methods for Horse class. **********/
     
     // if the horse has fallen, reduce it;s confidence by 10% and set the hasFallen attribute to true.
@@ -306,11 +296,13 @@ public class Horse
     public void fall()
     {
         this.hasFallen = true;
-        if (!(this.item.equals("winner's saddle")))
+        this.record.setFallCount(this.record.getFallCount() + 1);
+        if (!(this.item.equals("winner's saddle")))// decrease confidence only if horse isn't wearing the winner's saddle.
         {
             this.setBaseConfidence(this.getBaseConfidence() * 0.7);
             System.out.println(this.name + "base confidence has decreased");
         }
+
     }
 
     // incrments horse's current distance travelled by one

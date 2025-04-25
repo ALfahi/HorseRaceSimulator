@@ -24,10 +24,9 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.11 24/04/2025
+ * @version 1.12 25/04/2025
  * 
- * - current stats page now displays what item the horse is holding.
- * - fixed bug of statsPanel not rerendering from the race screen.
+ * - using horse record getters to get relevant information for the current race stats panel.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -171,16 +170,22 @@ public class RaceGUI
     {
         JLabel title = new JLabel("Name: " + horse.getName() + "                              " + "Lane: " + laneNumber );
         JLabel divider = new JLabel("------------------------------------------------------------");
-        JLabel typeLabel = new JLabel("Type: " + horse.getType());
-        JLabel confidenceLabel = new JLabel("current Confidence: " + (int)(horse.getConfidence() * 100) + "%");// add held item below.
+        JLabel typeLabel = new JLabel("Breed: " + horse.getType());
+        JLabel positionLabel = new JLabel("Previous race position: " + horse.getHorseRecord().getPreviousPosition());
+        JLabel confidenceLabel = new JLabel("current Confidence: " + (int)(horse.getConfidence() * 100) + "%");
         JLabel itemLabel = new JLabel("current Item: " + horse.getItem());
-        JLabel winsLabel = new JLabel("Wins: " + horse.getWins());
-        JLabel lossesLabel = new JLabel("Losses: " + horse.getLosses());
+        JLabel winsLabel = new JLabel("Wins: " + horse.getHorseRecord().getWinNumber());
+        JLabel lossesLabel = new JLabel("Losses: " + horse.getHorseRecord().getLossNumber());
+        JLabel fallLabel = new JLabel("Falls:" + horse.getHorseRecord().getFallCount());
+        JLabel winRatioLabel = new JLabel("Win ratio: ");
+        JLabel prevAverageTime = new JLabel("previous time to finish race: ");
+        JLabel fastestTimeLabel = new JLabel("Fastest finish time: ");
+
         JLabel space = new JLabel(" ");// just adds a space below so that the different stats aren't too close together.
 
 
-        JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, confidenceLabel, itemLabel, winsLabel, lossesLabel, 
-        space, space}, BoxLayout.Y_AXIS, null);
+        JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, positionLabel, confidenceLabel, 
+        itemLabel, winsLabel, lossesLabel, space, space}, BoxLayout.Y_AXIS, null);
         return horseStats;
     }
 
@@ -919,6 +924,9 @@ public class RaceGUI
         // change track background.
         refreshCurrentStats();
         JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
+
+        // before the animation  starts we can start another timer which will help us to determine how long it took to win race.
+        long raceStartTimestamp = System.currentTimeMillis();
         Timer raceTimer = new Timer(100, e -> 
         {
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
@@ -932,10 +940,22 @@ public class RaceGUI
                 {
                     JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
                 }
+                else// one of the horses won
+                {
+                    long raceEndTimestamp = System.currentTimeMillis();
+                    //System.out.println(raceEndTimestamp - raceStartTimestamp);
+                    Horse winningHorse = race.getLeadHorse();
+                    winningHorse.setFinishTime(raceEndTimestamp - raceStartTimestamp);
+                    //System.out.println(winningHorse.getName());
+
+                }
+                
+                // now store all of the positions:
+                race.setPositions();
             }
         });
     
-        raceTimer.start(); // start GUI-friendly race loop
+        raceTimer.start(); // start GUI-friendly race loop ( it doesn't block the thread.)
     }
 
     // this function will update the race's horizontal scrollpane to follow the lead horse (if it goes off screen)
