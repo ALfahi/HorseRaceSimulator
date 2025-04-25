@@ -24,9 +24,10 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.12 25/04/2025
+ * @version 1.13 25/04/2025
  * 
- * - using horse record getters to get relevant information for the current race stats panel.
+ * - refactored code and main game loop to the new race system (race continues after initial horse wins, until all horses fall
+ *  or pass finish line.).
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -889,11 +890,17 @@ public class RaceGUI
     }
 
     // This will replace the race.start() function and allow us to see the race happen in real time.
+    // this function acts as the main loop for the race, race ends when either all horses pass finish line, fall or time runs out
+    //(2 minutes).
     //
     public void startRaceAnimation() 
     {
+        final long TWOMINUTES = 120000;// move to outer loop
+        long raceStartTimestamp;
+        Timer raceTimer;
         resetRaceView();
-        System.out.println("before");
+        //System.out.println("before");
+
        /*  for (int i = 0; i < race.getTotalLanes(); i++)
         {
             if (race.getLane(i).getHorse() != null)
@@ -907,32 +914,21 @@ public class RaceGUI
         race.setRandomWeather();
         raceTrack.setWeather(race.getCurrentWeather());
         race.resetDistanceAllHorses();
-        System.out.println("after");
-
-        /* 
-        for (int i = 0; i < race.getTotalLanes(); i++)
-        {
-            if (race.getLane(i).getHorse() != null)
-            {
-                Horse horse = race.getLane(i).getHorse();
-                System.out.println("speed: " + horse.getSpeed() + " base speed: " + horse.getBaseSpeed() + " base confidence " + 
-                horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
-            }
-        }
-        */
-
+       // System.out.println("after");
         // change track background.
         refreshCurrentStats();
-        JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
+        //JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
 
         // before the animation  starts we can start another timer which will help us to determine how long it took to win race.
-        long raceStartTimestamp = System.currentTimeMillis();
-        Timer raceTimer = new Timer(100, e -> 
+        raceStartTimestamp = System.currentTimeMillis();
+        raceTimer = new Timer(100, e -> 
         {
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     
-            if (race.checkWin() || race.getRemainingHorses() == 0) 
+            long elapsedTime = System.currentTimeMillis() - raceStartTimestamp;// this be used to check if 2 minutes since race 
+                                                                              // start has passed.
+            if (race.didremainingHorseFinish(raceStartTimestamp) || race.getRemainingHorses() == 0 || elapsedTime >= TWOMINUTES) 
             {
                 ((Timer) e.getSource()).stop();// stop the race since either all horse eliminated or someone has won.
     
@@ -940,20 +936,11 @@ public class RaceGUI
                 {
                     JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
                 }
-                else// one of the horses won
-                {
-                    long raceEndTimestamp = System.currentTimeMillis();
-                    //System.out.println(raceEndTimestamp - raceStartTimestamp);
-                    Horse winningHorse = race.getLeadHorse();
-                    winningHorse.setFinishTime(raceEndTimestamp - raceStartTimestamp);
-                    //System.out.println(winningHorse.getName());
-
-                }
-                
-                // now store all of the positions:
-                race.setPositions();
+                // now go back to fallen/ active horses and give thier position a -1 (DNF) e.g. they fell or took too long
+                race.giveDNFs();
             }
         });
+
     
         raceTimer.start(); // start GUI-friendly race loop ( it doesn't block the thread.)
     }

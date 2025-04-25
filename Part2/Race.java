@@ -11,16 +11,19 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.16 25/4/2025
+ * @version 1.17 25/4/2025
  * 
  * 
- * - refactored code to integrate in the HorseRecord class.
+ * - races can now allow other horses to continue running until either all remaining horses passed finish line, fell or time limit
+ * - is over.
  */
 public class Race
 {
     private int raceLength = 30;// default value
     private List<Lane> lanes = new ArrayList<>();// use an arrayList to dynamically store the current number of lanes.
     private List<Horse> currentHorses = new ArrayList<>();// store all the used horses.
+    public int activeHorses; // used to represent horses who have yet to finish race and has not fell.
+    private int finishedCount = 0;// a counter of the number of horses who finished race.
     private final int MAXLANES = 20;// maximum number of lanes that the program will allow
     private final int MAXDISTANCE = 30;
     private final int  MINDISTANCE= 100;
@@ -100,6 +103,7 @@ public class Race
         this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
         this.raceLength = 30;// default value
+        this.finishedCount = 0;
     }
 
     /********** Horse management ************/
@@ -149,6 +153,7 @@ public class Race
              * baseMultiplier))
             {
                 theHorse.fall();
+                this.activeHorses --;
                 remainingHorses --;
             }
         }
@@ -160,11 +165,10 @@ public class Race
      * @param theHorse The horse we are testing
      * @return true if the horse has won, false otherwise.
      */
-    private boolean raceWonBy(Horse theHorse)
+    private boolean horsePassedFinishLine(Horse theHorse)
     {
         if (theHorse.getDistanceTravelled() >= raceLength)
         {
-            System.out.println(theHorse.getName() + " has won!!!");
             return true;
         }
         else
@@ -203,7 +207,6 @@ public class Race
                 double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
                 double speedModifier = AllWEATHER.get(this.currentWeather)[1];
                 // applying weather modifiers to horses, but only if the horse isn't wearing the weather proof jacket.
-                System.out.println(horse.getItem());
                 if (!horse.getItem().equals("Weather proof jacket"))
                 {
                     horse.setConfidence(horse.getConfidence() * confidenceModifier);
@@ -216,6 +219,8 @@ public class Race
             }
         }
         remainingHorses = currentHorses.size();
+        activeHorses = currentHorses.size();
+        this.finishedCount = 0;
         
     }
 
@@ -228,6 +233,11 @@ public class Race
             Horse horse = lanes.get(i).getHorse();
             if (horse != null)
             {
+                if (horse.hasFinishedRace()) 
+                {
+                    continue; // already finished race, move onto next horse.
+                }
+
                 moveHorse(horse);
                 // if horse has fallen, make the visual be the 'X' emoji.
                 if (horse.hasFallen())
@@ -240,45 +250,58 @@ public class Race
         }
     }
 
-    // goes through all active horses and checks if any of them won, if yes, then output true, otherwise output false
-    // returns boolean
+    // This function checks to see if all remaining horses have crossed the lane. (ignores fallen horses)
+    // or if the two minute timer has ended.
+    // returns a boolean value
     //
-    public boolean checkWin()
+    public boolean didremainingHorseFinish(long timer)
     {
-        boolean win = false;
-        for (int i = 0; i < currentHorses.size(); i++)
-        {
-            if(raceWonBy(currentHorses.get(i)))
-            {
-                win = true;
-                Horse winner = currentHorses.get(i);
-                winner.setWin(winner.getHorseRecord().getWinNumber() + 1);
+        long finishTime;
 
-                // now also go back to every  other horse and increase their loss count:
-                for (int j = 0; j < currentHorses.size();j++)
+        Collections.sort(currentHorses, (horse1, horse2) ->
+        Double.compare(horse2.getDistanceTravelled(), horse1.getDistanceTravelled()));// compare by distance travelled 
+        
+        if (activeHorses > 0)
+        {
+            for (int i = 0; i < currentHorses.size(); i++)
+            {
+                Horse horse = currentHorses.get(i);
+                if (horse.hasFallen() || (horse.hasFinishedRace() == true))// new horse already crossed finish line, skip this one.
                 {
-                    Horse horse = currentHorses.get(j);
-                    if (!horse.equals(winner))
+                    continue;
+                }
+                if (horsePassedFinishLine(horse))
+                {
+                    finishTime = System.currentTimeMillis() - timer;
+                    horse.getHorseRecord().addPosition(finishedCount + 1);
+                    if (finishedCount == 0)// horse won.
                     {
-                        horse.setLoss(horse.getHorseRecord().getLossNumber() + 1);
+                        horse.getHorseRecord().setWinNumber(horse.getHorseRecord().getWinNumber() + 1);
                     }
+                    else// horse has lost the race.
+                    {
+                        horse.getHorseRecord().setLossNumber(horse.getHorseRecord().getLossNumber() + 1);
+                    }
+                    horse.setFinishTime(finishTime);
+                    horse.setFinishedRace(true);
+                    this.activeHorses --;
+                    finishedCount++;
                 }
             }
         }
-        return win;
+        return activeHorses <= 0;
     }
 
-    // this function will set the horse positions for all the horses after the race has concluded:
-    // this will work by sorting the current horse array list in terms of their distance travelled in descending order.
-    public void setPositions()
+    // this gives all fallen or horses who took too long a dnf placemenrt (-1)
+    //
+    public void giveDNFs()
     {
-       Collections.sort(currentHorses, (horse1, horse2) ->
-       Double.compare(horse2.getDistanceTravelled(), horse1.getDistanceTravelled()));// compare by distance travelled 
-                                                                                    //in descending order.
         for (int i = 0; i < currentHorses.size(); i++)
         {
-            currentHorses.get(i).getHorseRecord().addPosition(i + 1);// recording position of horse.
-            // e.g. horse at first element will have a position of 1, second element will have a position of 2 and so forth.
+            if ((currentHorses.get(i).hasFinishedRace() == false) || (currentHorses.get(i).hasFallen() == true) )
+            {
+                currentHorses.get(i).getHorseRecord().addPosition(-1);
+            }
         }
     }
 

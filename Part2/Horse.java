@@ -51,6 +51,7 @@ public class Horse
         TYPETOSPEED.put("Thoroughbred", 3);
     }
     private double finishTime = -1;
+    private boolean finishedRace = false;
 
     private HorseRecord record;// a personal record for the horse class.
       
@@ -188,6 +189,13 @@ public class Horse
         return this.hasFallen;
     }
 
+    // returns if the horse has finished the race.
+    //
+    public boolean hasFinishedRace()
+    {
+        return this.finishedRace;
+    }
+
     // this function returns the record.
     //
     public HorseRecord getHorseRecord()
@@ -238,6 +246,13 @@ public class Horse
     public void setSymbol(char newSymbol)
     {
         this.horseSymbol = newSymbol;
+    }
+
+    // used to set the finishedRace variable
+    //
+    public void setFinishedRace(boolean finished)
+    {
+        this.finishedRace = finished;
     }
 
     // this function sets the rececords loss numbber to the new passed in number.
@@ -310,12 +325,12 @@ public class Horse
     public void moveForward()
     {
         double baseMovement = this.distanceTravelled + getSpeed();
-        if (this.type.equals("Speedy Horseshoe"))
+        if (this.item.equals("Speedy Horseshoe"))
         {
             baseMovement++;
         }
 
-        if (this.type.equals("Balanced Horseshoe"))
+        if (this.item.equals("Balanced Horseshoe"))
         {
             baseMovement--;
         }
@@ -337,6 +352,7 @@ public class Horse
     {
         this.distanceTravelled = 0;
         this.hasFallen = false;
+        this.finishedRace = false;
         this.setConfidence(this.getBaseConfidence());
         this.setSpeed(this.getBaseSpeed());// this initialises the speed 
         this.setSymbol(this.getBackUpSymbol());
