@@ -302,6 +302,8 @@ public class Horse
         {
             this.record.setFastestFinishTime(finishTime);
         }
+        // also calculate and add the average speed for this race to the records.
+        this.record.addAverageSpeed(this.distanceTravelled / finishTime);
     }
 
     /**************other methods for Horse class. **********/
@@ -312,6 +314,8 @@ public class Horse
     {
         this.hasFallen = true;
         this.record.setFallCount(this.record.getFallCount() + 1);
+        this.record.addAverageSpeed(-1.0);// give it a DNF value.
+        this.record.addPosition(-1);// can't even finish race.
         if (!(this.item.equals("winner's saddle")))// decrease confidence only if horse isn't wearing the winner's saddle.
         {
             this.setBaseConfidence(this.getBaseConfidence() * 0.7);

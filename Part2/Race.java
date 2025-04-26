@@ -11,11 +11,10 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.17 25/4/2025
+ * @version 1.18 26/4/2025
  * 
  * 
- * - races can now allow other horses to continue running until either all remaining horses passed finish line, fell or time limit
- * - is over.
+ * - race class now records key race information into the TrackRecord.
  */
 public class Race
 {
@@ -27,11 +26,11 @@ public class Race
     private final int MAXLANES = 20;// maximum number of lanes that the program will allow
     private final int MAXDISTANCE = 30;
     private final int  MINDISTANCE= 100;
+    private int round = 1;
     private int remainingHorses = 0;
     private String raceStartTime;
-    private int fastestTime = 0;
-    private String fastestTimeHorse = null;// name of the horse who has the most fastest time.
     private String currentWeather = "Normal";
+    private TrackRecord record;
     private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
     static {
         // double values are as follows: confidence (multiplier), speed (additivie), fall chance (multiplier)
@@ -92,6 +91,7 @@ public class Race
         {
             this.currentWeather = "Icy";
         }
+        this.record.addWeather(this.currentWeather);
     }
 
     // this methods resets the attrbute for a fresh new race
@@ -273,6 +273,7 @@ public class Race
                 if (horsePassedFinishLine(horse))
                 {
                     finishTime = System.currentTimeMillis() - timer;
+                    this.record.setHorseLeaderData(finishTime, horse.getName());
                     horse.getHorseRecord().addPosition(finishedCount + 1);
                     if (finishedCount == 0)// horse won.
                     {
@@ -292,15 +293,17 @@ public class Race
         return activeHorses <= 0;
     }
 
-    // this gives all fallen or horses who took too long a dnf placemenrt (-1)
+    // this gives horses who took too long a dnf placement and time. (-1)
     //
     public void giveDNFs()
     {
         for (int i = 0; i < currentHorses.size(); i++)
         {
-            if ((currentHorses.get(i).hasFinishedRace() == false) || (currentHorses.get(i).hasFallen() == true) )
+            if ((currentHorses.get(i).hasFinishedRace() == false && !currentHorses.get(i).hasFallen()))
             {
                 currentHorses.get(i).getHorseRecord().addPosition(-1);
+                currentHorses.get(i).getHorseRecord().addAverageSpeed(-1.0);
+
             }
         }
     }
@@ -443,6 +446,13 @@ public class Race
     {
         return this.raceStartTime;
     }
+
+    // This function is used to get the race's record.
+    //
+    public TrackRecord getRecord()
+    {
+        return this.record;
+    }
     // this function returns the lead horse.
     //
     public Horse getLeadHorse()
@@ -494,6 +504,63 @@ public class Race
     public void setRaceStartTime(String newTime)
     {
         this.raceStartTime = newTime;
+    }
+
+
+    /******** functions relating to it's record ********/
+
+    public void startRaceRecord(String date)
+    {
+        // this also resets old record if it existed previously.
+        this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
+        this.round = 1;// also initialise/ reset the round number to 1 again.
+    }
+
+    public void finaliseRaceRecord()
+    {
+        int totalWins = 0;
+        int totalFalls = 0;
+        double averageSpeed = 0.0;
+        int horsesWithValidSpeeds = currentHorses.size();
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            // get each horse's record/ stats.
+            HorseRecord horseStats = currentHorses.get(i).getHorseRecord();
+
+            totalWins = totalWins + horseStats.getWinNumber();
+            totalFalls = totalFalls + horseStats.getFallCount();
+            System.out.println("round number is" + round);
+            System.out.println("size of average speed is: " + horseStats.getAverageSpeed().size() + 
+            "name is: " + currentHorses.get(i).getName());
+            if (horseStats.getAverageSpeed().get(round - 1) != -1.0)
+            {
+                System.out.println("Round: " + round);
+                averageSpeed = averageSpeed + horseStats.getAverageSpeed().get(round - 1);
+            }
+            else// horse had an invalid average speed.
+            {
+                horsesWithValidSpeeds --;
+            }
+
+
+        }
+
+        if (averageSpeed <= 0.0)// all horses fell or no horses won for some reason
+        {
+            this.record.addAverageSpeed(-1.0);// DNF value
+        }
+        else
+        {
+            this.record.addAverageSpeed(averageSpeed / horsesWithValidSpeeds);// only use the valid horses with valid average speed
+                                                                             // for calculation.
+        }
+        this.record.setHorsesWon(totalWins);
+        this.record.addHorseFallStats(totalFalls);
+        this.record.setTotalRounds(this.round);// set the new total round value after every race.
+        this.round ++;// increment the round number here.
+        // mabye move this into the record itself (e.g. before we save we set the round number to be current weather size).
+
+
     }
 }
 

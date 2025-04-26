@@ -24,10 +24,10 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.13 25/04/2025
+ * @version 1.14 2/604/2025
  * 
- * - refactored code and main game loop to the new race system (race continues after initial horse wins, until all horses fall
- *  or pass finish line.).
+ * - race now says the name of the winner.
+ * - race stats are now tracked and displayed during a race.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -49,6 +49,7 @@ public class RaceGUI
     private static Track raceTrack = new Track(race.getAllLanes());
     private static Track editTrack = new Track(race.getAllLanes());
     private JPanel currentStatsContainer =  createPanel(new Component[]{}, BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
+    private JPanel currentRaceStats = createPanel(new Component[]{},BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
 
@@ -169,25 +170,65 @@ public class RaceGUI
     //
     private JPanel createHorseStatsPanel(Horse horse, int laneNumber)
     {
+
+        HorseRecord record = horse.getHorseRecord();
         JLabel title = new JLabel("Name: " + horse.getName() + "                              " + "Lane: " + laneNumber );
         JLabel divider = new JLabel("------------------------------------------------------------");
         JLabel typeLabel = new JLabel("Breed: " + horse.getType());
-        JLabel positionLabel = new JLabel("Previous race position: " + horse.getHorseRecord().getPreviousPosition());
+        JLabel positionLabel = new JLabel("Previous race position: " + 
+        record.getReadablePosition(record.getPosition().size() - 1));
+
         JLabel confidenceLabel = new JLabel("current Confidence: " + (int)(horse.getConfidence() * 100) + "%");
         JLabel itemLabel = new JLabel("current Item: " + horse.getItem());
-        JLabel winsLabel = new JLabel("Wins: " + horse.getHorseRecord().getWinNumber());
-        JLabel lossesLabel = new JLabel("Losses: " + horse.getHorseRecord().getLossNumber());
-        JLabel fallLabel = new JLabel("Falls:" + horse.getHorseRecord().getFallCount());
-        JLabel winRatioLabel = new JLabel("Win ratio: ");
-        JLabel prevAverageTime = new JLabel("previous time to finish race: ");
-        JLabel fastestTimeLabel = new JLabel("Fastest finish time: ");
+        JLabel winsLabel = new JLabel("Wins: " + record.getWinNumber());
+        JLabel lossesLabel = new JLabel("Losses: " + record.getLossNumber());
+        JLabel fallLabel = new JLabel("Falls:" + record.getFallCount());
+        JLabel winRatioLabel = new JLabel("Win ratio: " + record.getReadableWinRatio());
+        JLabel prevAverageTime = new JLabel("average speed to finish previous round: " +
+         record.getReadableAverageSpeed(record.getAverageSpeed().size() - 1));
+
+        JLabel fastestTimeLabel = new JLabel("Fastest finish time: " +  record.getReadableFastestFinishTime());
 
         JLabel space = new JLabel(" ");// just adds a space below so that the different stats aren't too close together.
 
 
         JPanel horseStats = createPanel(new Component[]{title, divider, typeLabel, positionLabel, confidenceLabel, 
-        itemLabel, winsLabel, lossesLabel, space, space}, BoxLayout.Y_AXIS, null);
+        itemLabel, winsLabel, lossesLabel,fallLabel, winRatioLabel, prevAverageTime, fastestTimeLabel, space, space}
+        , BoxLayout.Y_AXIS, null);
         return horseStats;
+    }
+
+    // This function will be used to create a small panel for the racetrack showing it's current condtions
+    // e.g. current weather, current fastest horse + time, round number etc.
+    //
+    private JPanel createRaceStatsPanel()
+    {
+        TrackRecord record = race.getRecord();
+        JPanel raceStatsPanel = new JPanel();
+        JLabel weather;
+        if (record != null)// if the record has been initialised, then will the panel with the record values.
+        {
+            // get totalRounds only increments after a round has ended, so to compensate we just add one here.
+            JLabel round = new JLabel("Round Number " + (record.getTotalRounds() + 1));// this is 
+            // getting most rescent/ current weather from the records.
+            if (!(record.getWeathers().size() <= 0))// since this function is called before the race begins,
+            // in the beggining we just set the weather to be an empty label, and after the race sets a specifc weather condtition
+            // we can finally refresh and add the weather back in.
+            {
+             weather = new JLabel("Current Weather: " + record.getWeathers().get(record.getWeathers().size() - 1));
+            }
+            else
+            {
+                weather = new JLabel();
+            }
+            JLabel fastestHorse = new JLabel("Fastest Horse: " + record.getReadableFastestHorse());
+            JLabel fastestTime = new JLabel("Fastest Finish Time: " + record.getReadableFastestFinishTime());
+            
+            raceStatsPanel = createPanel(new Component[]{round,weather, fastestHorse, fastestTime}, 
+            new GridLayout(2, 2), null);// change this to be color of current lanes later.
+    
+        }
+        return raceStatsPanel;
     }
 
     // this allows us to make icons into buttons
@@ -431,6 +472,12 @@ public class RaceGUI
             JOptionPane.showMessageDialog(null, "Horse name cannot be empty!", "Input Error", JOptionPane.ERROR_MESSAGE);
             return; 
         }
+
+        else if (horseName.contains(",") || horseName.contains("|"))
+        {
+            JOptionPane.showMessageDialog(null, "Horse name cannot contain '|' or ',' !", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return; 
+        }
         
         // check if user decided to pick symbols instead of images:
         if (isSymbolEnabled)
@@ -620,7 +667,11 @@ public class RaceGUI
 
 
         Button startRaceButton = new Button("start race", template);
-        startRaceButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
+        startRaceButton.addAction(e -> {
+            race.startRaceRecord(generateDateTime());
+            redirectToRace(cardLayout, cardContainer, "raceScreen");
+        });
+                                                                                // start recording a new race.
     
         Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton};
         JPanel menuButtonContainer = createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1, 0, 20), null);
@@ -851,7 +902,11 @@ public class RaceGUI
     replayButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
 
     // scrollPanes to store both the racce track and also the stats
-    JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
+
+    // this container will house both the track and also the current race stats/ conditions
+    JPanel fullRacePanel = createPanel(new Component[]{this.currentRaceStats, raceTrack.getTrackScrollPane()}
+    , BoxLayout.Y_AXIS, null);
+    JScrollPane raceTrackJScrollPane = new JScrollPane(fullRacePanel);
     JScrollPane statsJScrollPane = new JScrollPane(this.currentStatsContainer);
     refreshCurrentStats();// make sure to refresh the stats container with all the new information.
     // enable scrollbars as needed
@@ -894,7 +949,8 @@ public class RaceGUI
     //(2 minutes).
     //
     public void startRaceAnimation() 
-    {
+        { 
+
         final long TWOMINUTES = 120000;// move to outer loop
         long raceStartTimestamp;
         Timer raceTimer;
@@ -936,10 +992,17 @@ public class RaceGUI
                 {
                     JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
                 }
+                else
+                {
+                    JOptionPane.showMessageDialog(null, "Winner is: " + race.getLeadHorse().getName());// fix this.
+                }
                 // now go back to fallen/ active horses and give thier position a -1 (DNF) e.g. they fell or took too long
                 race.giveDNFs();
+                // and finally finalise the race records.
+                race.finaliseRaceRecord();
             }
         });
+
 
     
         raceTimer.start(); // start GUI-friendly race loop ( it doesn't block the thread.)
@@ -992,7 +1055,15 @@ public class RaceGUI
                 this.currentStatsContainer.add(createHorseStatsPanel(race.getLane(i).getHorse() , i + 1));
             }
         }
-        
+
+        // create the new updated race stats panel and swap the old one out for the new one.
+        JPanel raceStats = createRaceStatsPanel();
+        this.currentRaceStats.removeAll();
+        this.currentRaceStats.add(raceStats);
+
+        this.currentRaceStats.revalidate();
+        this.currentRaceStats.repaint();
+
         this.currentStatsContainer.revalidate();
         this.currentStatsContainer.repaint();
     }
@@ -1008,7 +1079,6 @@ public class RaceGUI
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");// format the value to a more
                                                                                                 // readable format.
         String formattedDateTime = currenTime.format(formatter);
-        System.out.println("Formatted: " + formattedDateTime);
         return formattedDateTime;
     }
     /*********** getters */

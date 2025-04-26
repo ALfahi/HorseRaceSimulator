@@ -1,5 +1,5 @@
 package Part2;
-/* This class is just a record, and it will store some data which will then be written to csv.
+/* This class is just a record, and it will store some data about specific horses which will then be written to csv.
 *
 * @author Fahi Sabab, Al
 * @version 1.1 25/4/2025
@@ -131,7 +131,11 @@ class HorseRecord
     //
     public double getRecentAverageSpeed()
     {
-        return averageSpeed.get(averageSpeed.size() - 1);
+        if (averageSpeed.size() > 0)
+        {
+            return averageSpeed.get(averageSpeed.size() - 1);
+        }
+        return 1.0;
     }
 
     // returns entire arrayList of positions
@@ -182,16 +186,18 @@ class HorseRecord
         this.item = item;
     }
 
-    // sets the win number
+    // sets the win number and updates the win/loss ratio.
     public void setWinNumber(int winNumber) 
     {
         this.winNumber = winNumber;
+        updateWinRatio();
     }
 
-    // sets the loss number
+    // sets the loss number and updates the win/loss ratio.
     public void setLossNumber(int lossNumber) 
     {
         this.lossNumber = lossNumber;
+        updateWinRatio();
     }
 
     // sets the fall count
@@ -230,7 +236,62 @@ class HorseRecord
         this.position = position;
     }
 
-    /********other functions */
+    /********* display functions  *********/
+
+    // this will get the current winRatio number output a more readable string.
+    //
+    public String getReadableWinRatio()
+    {
+        if (this.winLossRatio == 0.0)
+        {
+            return "n/a";
+        }
+        return String.format("%.2f", this.winLossRatio * 100) + "%";
+    }
+
+    // this function will get the position at the specified index and return a more readable formatted text.
+    //
+    public String getReadablePosition(int index)
+    {
+        if ((position.size() == 0)  || (index < 0) || (index > position.size()) || (position.get(index) == -1))
+        {
+            return "n/a";// or mabye swap to "didn't finish race."
+        }
+        else
+        {
+            return String.valueOf(position.get(index));
+        }
+    }
+
+    // This will get a string which will represent the speed in a more readable format.
+    //
+    public String getReadableAverageSpeed(int index)
+    {
+        if ((index < 0 ) || ( averageSpeed.size() <= 0) || (index > averageSpeed.size())  || (averageSpeed.get(index) == -1.0))
+        {
+            return "n/a";
+        }
+        else
+        {
+            return String.format("%.2f", this.averageSpeed.get(index)) + "m/s";
+        }
+    }
+
+    // This will get a String which represents the fastest time in a more readable format.
+    //
+    public String getReadableFastestFinishTime()
+    {
+        if (this.fastestFinishTime == -1.0)
+        {
+            return "n/a";
+        }
+        else
+        {
+            return String.format("%.2f", this.fastestFinishTime) + "s";
+        }
+    }
+
+    /********other functions ************/
 
     // adds in a new position at end of position list.
     //
@@ -251,6 +312,13 @@ class HorseRecord
     public void addConfidence(Double newConfidence)
     {
         this.confidence.add(newConfidence);
+    }
+
+    // This function will update the win/loss ratio whenever it's called.
+    //
+    public void updateWinRatio()
+    {
+      this.winLossRatio = this.winNumber / (this.lossNumber + 1);
     }
 
 
