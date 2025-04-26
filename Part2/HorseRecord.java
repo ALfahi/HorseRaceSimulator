@@ -2,11 +2,10 @@ package Part2;
 /* This class is just a record, and it will store some data about specific horses which will then be written to csv.
 *
 * @author Fahi Sabab, Al
-* @version 1.1 25/4/2025
+* @version 1.2 25/4/2025
 * 
 * 
-* - added in some getters, setters and useful helper functions to intialise this class. 
-* - mapped out general structure and purpose of this class by using comments.
+* - fixed some bugs in how winRatio was caluclated, now it's calculated and siplayed correctly.
 */
 import java.util.ArrayList;
 
@@ -242,10 +241,6 @@ class HorseRecord
     //
     public String getReadableWinRatio()
     {
-        if (this.winLossRatio == 0.0)
-        {
-            return "n/a";
-        }
         return String.format("%.2f", this.winLossRatio * 100) + "%";
     }
 
@@ -318,7 +313,14 @@ class HorseRecord
     //
     public void updateWinRatio()
     {
-      this.winLossRatio = this.winNumber / (this.lossNumber + 1);
+      if (this.winNumber + this.lossNumber >0)
+      {
+        this.winLossRatio = (this.winNumber)/ (double) (this.winNumber + this.lossNumber);
+      }
+      else
+      {
+        this.winLossRatio = 0.0;
+      }
     }
 
 
@@ -342,3 +344,13 @@ class HorseRecord
     /********* File IO methods ********/
 
 }
+
+
+/*
+ * reset win ratio
+ * wins
+ * losses
+ * falls
+ * average speed
+ * fastest finish time
+ */

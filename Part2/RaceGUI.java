@@ -668,7 +668,7 @@ public class RaceGUI
 
         Button startRaceButton = new Button("start race", template);
         startRaceButton.addAction(e -> {
-            race.startRaceRecord(generateDateTime());
+            race.startRecord(generateDateTime());
             redirectToRace(cardLayout, cardContainer, "raceScreen");
         });
                                                                                 // start recording a new race.
@@ -904,9 +904,9 @@ public class RaceGUI
     // scrollPanes to store both the racce track and also the stats
 
     // this container will house both the track and also the current race stats/ conditions
-    JPanel fullRacePanel = createPanel(new Component[]{this.currentRaceStats, raceTrack.getTrackScrollPane()}
+    JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
+    JPanel fullRacePanel = createPanel(new Component[]{this.currentRaceStats, raceTrackJScrollPane}
     , BoxLayout.Y_AXIS, null);
-    JScrollPane raceTrackJScrollPane = new JScrollPane(fullRacePanel);
     JScrollPane statsJScrollPane = new JScrollPane(this.currentStatsContainer);
     refreshCurrentStats();// make sure to refresh the stats container with all the new information.
     // enable scrollbars as needed
@@ -918,9 +918,8 @@ public class RaceGUI
     // this panel will hold both the track and also the panel to house the information of theindivisual horses
     // e.g. name, confidence etc.
     JPanel northContainer = createPanel(
-        new Component[]{raceTrackJScrollPane, statsJScrollPane},
-        new GridLayout(1, 2), null
-    );
+        new Component[]{fullRacePanel, statsJScrollPane},
+        new GridLayout(1, 2), null);
 
     // make sure northContainer only takes up 50% of the screen height.
 

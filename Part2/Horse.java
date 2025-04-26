@@ -20,11 +20,11 @@ import java.util.Random;
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.8 25/4/2025
+ * @version 1.9 26/4/2025
  * 
- * - made a base consturctor and then called that base constructor on the other two constructors (one that uses imagePath, 
- *  and the other which uses symbols) to prevent redundant copying of code.
- * - refacotred code to get rid of redundant attributes and instead let the record itself handle it (reduces duplicate code).
+ * - added a new function and attribute to reset horse's base confidence to what the user initially inputted it as,
+ *   it ignores previos wins and falls and starts froma  fresh new clean slate.
+ * - fixed some rounding error when setting finishTime in horse records (did integer division by accident).
  */
 public class Horse
 {
@@ -43,6 +43,7 @@ public class Horse
     // (so weather conditions don't stack, but wins/ losses should stack with base speed.)
     private int baseSpeed = speed;
     private double baseConfidence;
+    private final double ORIGINALCONFIDENCE;
     private String item;
     private static final Map<String, Integer> TYPETOSPEED = new HashMap<String, Integer>();
     static {
@@ -65,6 +66,7 @@ public class Horse
         this.name = horseName;
         this.confidence = horseConfidence;
         this.baseConfidence = horseConfidence;
+        this.ORIGINALCONFIDENCE = horseConfidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
         this.type = type;
@@ -292,15 +294,15 @@ public class Horse
     //
     public void setFinishTime(long finishTime)// convert into seconds which is a more readable format.
     {
-        finishTime = finishTime / 1000;
-        this.finishTime = finishTime ;// update most recent finish time.
+        double finishTimeInSeconds = finishTime / 1000.0;
+        this.finishTime = finishTimeInSeconds ;// update most recent finish time.
         if ((finishTime < this.record.getFastestFinishTime()) && (this.record.getFastestFinishTime() != -1))
         {
-            this.record.setFastestFinishTime(finishTime);
+            this.record.setFastestFinishTime(this.finishTime);
         }
         else if (this.record.getFastestFinishTime()  == -1)// the horse hasn't won yet, so any finish time is it's fastest finish time.
         {
-            this.record.setFastestFinishTime(finishTime);
+            this.record.setFastestFinishTime(this.finishTime);
         }
         // also calculate and add the average speed for this race to the records.
         this.record.addAverageSpeed(this.distanceTravelled / finishTime);
@@ -362,11 +364,11 @@ public class Horse
         this.setSymbol(this.getBackUpSymbol());
     }
 
-    // method to print out the horse stats and name
+    // This function will hard reset the horse's confidence back to what the user initially inputted the confidecne to be
+    // (used whenever a new race starts)
     //
-    public void printStats()
+    public void hardResetConfidence()
     {
-        String formattedConfidenceString = HelperFunctions.displayNDecimalPlaces(this.getConfidence(),2 );// display confidence to 2dp
-        System.out.println(this.getName() + "( current confidence " + formattedConfidenceString + ")");
+        this.baseConfidence = this.ORIGINALCONFIDENCE;
     }
 }

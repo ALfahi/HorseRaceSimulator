@@ -11,10 +11,11 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.18 26/4/2025
+ * @version 1.19 26/4/2025
  * 
  * 
- * - race class now records key race information into the TrackRecord.
+ * - race class now resets all the horse records when it starts to record data.
+ * - renamed StartRaceRecord() into StartRecord() as it now resets the horse's records as well.
  */
 public class Race
 {
@@ -507,13 +508,16 @@ public class Race
     }
 
 
-    /******** functions relating to it's record ********/
+    /******** functions relating to trackRecrod and HorseRecord ********/
 
-    public void startRaceRecord(String date)
+    // this function will hard reset all horses (icluding their horse records)
+    // and also create a fresh new TrackRecord.
+    public void startRecord(String date)
     {
+        this.round = 1;// also initialise/ reset the round number to 1 again.
         // this also resets old record if it existed previously.
         this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
-        this.round = 1;// also initialise/ reset the round number to 1 again.
+        resetHorseRecords(date);
     }
 
     public void finaliseRaceRecord()
@@ -561,6 +565,18 @@ public class Race
         // mabye move this into the record itself (e.g. before we save we set the round number to be current weather size).
 
 
+    }
+
+    // This function will reset the horse record to be brand new.
+    //
+    public void resetHorseRecords(String date)
+    {
+        for (int i = 0; i < currentHorses.size(); i ++)
+        {
+            currentHorses.get(i).hardResetConfidence();// reset confidence to what the user initially inputted it as (ignores
+                                                       // wins and falls)
+            currentHorses.get(i).getHorseRecord().reset(date);
+        }
     }
 }
 
