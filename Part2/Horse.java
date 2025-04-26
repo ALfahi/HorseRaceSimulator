@@ -268,21 +268,6 @@ public class Horse
 
     }
 
-    // this function increases the horse's confidence if it has won (and not wearing winner's saddle), it also adds it to the record.
-    //
-    public void setWin(int wins)
-    {
-        if (wins >=0)
-        {
-            this.record.setWinNumber(wins);
-            if (!(this.item.equals("winner's saddle")))
-            {   
-                this.setBaseConfidence(this.getBaseConfidence() * 1.2);// increase the base confidence.
-                System.out.println(this.name + "base confidence has increased");
-            }
-        }
-    }
-
     // this function will allow us to set the speed of the horse.
     //
     public void setSpeed(int speed)

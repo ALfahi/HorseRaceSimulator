@@ -11,11 +11,11 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.19 26/4/2025
+ * @version 1.20 26/4/2025
  * 
  * 
- * - race class now resets all the horse records when it starts to record data.
- * - renamed StartRaceRecord() into StartRecord() as it now resets the horse's records as well.
+ * - refactored code to safley store all race data after a race has concluded (either when race ends or user presses
+ *  back/ replay).
  */
 public class Race
 {
@@ -27,7 +27,7 @@ public class Race
     private final int MAXLANES = 20;// maximum number of lanes that the program will allow
     private final int MAXDISTANCE = 30;
     private final int  MINDISTANCE= 100;
-    private int round = 1;
+    private int round = 0;
     private int remainingHorses = 0;
     private String raceStartTime;
     private String currentWeather = "Normal";
@@ -251,43 +251,64 @@ public class Race
         }
     }
 
+    // this function just sorts the arrayList of current horses based on distances, the first index contains the leading horse
+    // (most distance covered)
+    //
+    private void sortHorsesByDistance() 
+    {
+        Collections.sort(currentHorses, (h1, h2) -> 
+            Double.compare(h2.getDistanceTravelled(), h1.getDistanceTravelled()));
+    }
+
+    // This function checks and processes when a horse has passed the finishLine( finished the race)
+    // preCondition: every horse passed in here has crossed the finish line.
+    //
+    private void processHorseFinish(Horse horse, long timer) 
+    {
+        long finishTime = System.currentTimeMillis() - timer;
+    
+        record.setHorseLeaderData(finishTime, horse.getName());
+        horse.getHorseRecord().addPosition(finishedCount + 1);
+    
+        if (finishedCount == 0) // Winner
+        { 
+            horse.getHorseRecord().setWinNumber(horse.getHorseRecord().getWinNumber() + 1);
+            if (!horse.getItem().equals("Winner's Saddle")) 
+            {
+                horse.setBaseConfidence(horse.getBaseConfidence() * 1.2);
+            }
+        } 
+        else // Loser
+        { 
+            horse.getHorseRecord().setLossNumber(horse.getHorseRecord().getLossNumber() + 1);
+        }
+    
+        horse.setFinishTime(finishTime);
+        horse.setFinishedRace(true);
+    
+        activeHorses--;
+        finishedCount++;
+    }
+
     // This function checks to see if all remaining horses have crossed the lane. (ignores fallen horses)
-    // or if the two minute timer has ended.
     // returns a boolean value
     //
     public boolean didremainingHorseFinish(long timer)
     {
-        long finishTime;
+        sortHorsesByDistance();
 
-        Collections.sort(currentHorses, (horse1, horse2) ->
-        Double.compare(horse2.getDistanceTravelled(), horse1.getDistanceTravelled()));// compare by distance travelled 
-        
-        if (activeHorses > 0)
-        {
-            for (int i = 0; i < currentHorses.size(); i++)
+        if (activeHorses > 0) {
+            for (int i = 0; i < currentHorses.size(); i++) 
             {
                 Horse horse = currentHorses.get(i);
-                if (horse.hasFallen() || (horse.hasFinishedRace() == true))// new horse already crossed finish line, skip this one.
+                if (horse.hasFallen() || horse.hasFinishedRace()) 
                 {
                     continue;
                 }
-                if (horsePassedFinishLine(horse))
+    
+                if (horsePassedFinishLine(horse)) 
                 {
-                    finishTime = System.currentTimeMillis() - timer;
-                    this.record.setHorseLeaderData(finishTime, horse.getName());
-                    horse.getHorseRecord().addPosition(finishedCount + 1);
-                    if (finishedCount == 0)// horse won.
-                    {
-                        horse.getHorseRecord().setWinNumber(horse.getHorseRecord().getWinNumber() + 1);
-                    }
-                    else// horse has lost the race.
-                    {
-                        horse.getHorseRecord().setLossNumber(horse.getHorseRecord().getLossNumber() + 1);
-                    }
-                    horse.setFinishTime(finishTime);
-                    horse.setFinishedRace(true);
-                    this.activeHorses --;
-                    finishedCount++;
+                    processHorseFinish(horse, timer);
                 }
             }
         }
@@ -372,7 +393,6 @@ public class Race
    
 
     /*********getter methods */
-
     // this function gets the total amount of remaining horses.
     //
     public int getRemainingHorses()
@@ -514,7 +534,7 @@ public class Race
     // and also create a fresh new TrackRecord.
     public void startRecord(String date)
     {
-        this.round = 1;// also initialise/ reset the round number to 1 again.
+        this.round = 0;// also initialise/ reset the round number to 1 again.
         // this also resets old record if it existed previously.
         this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
         resetHorseRecords(date);
@@ -530,23 +550,21 @@ public class Race
         {
             // get each horse's record/ stats.
             HorseRecord horseStats = currentHorses.get(i).getHorseRecord();
+            if ((round) >= horseStats.getAverageSpeed().size() || (round <0))// invalid ranges, just return from the function.
+            {
+                return;
+            }
 
             totalWins = totalWins + horseStats.getWinNumber();
             totalFalls = totalFalls + horseStats.getFallCount();
-            System.out.println("round number is" + round);
-            System.out.println("size of average speed is: " + horseStats.getAverageSpeed().size() + 
-            "name is: " + currentHorses.get(i).getName());
-            if (horseStats.getAverageSpeed().get(round - 1) != -1.0)
+            if (horseStats.getAverageSpeed().get(round) != -1.0)
             {
-                System.out.println("Round: " + round);
-                averageSpeed = averageSpeed + horseStats.getAverageSpeed().get(round - 1);
+                averageSpeed = averageSpeed + horseStats.getAverageSpeed().get(round);
             }
             else// horse had an invalid average speed.
             {
                 horsesWithValidSpeeds --;
             }
-
-
         }
 
         if (averageSpeed <= 0.0)// all horses fell or no horses won for some reason
@@ -563,8 +581,6 @@ public class Race
         this.record.setTotalRounds(this.round);// set the new total round value after every race.
         this.round ++;// increment the round number here.
         // mabye move this into the record itself (e.g. before we save we set the round number to be current weather size).
-
-
     }
 
     // This function will reset the horse record to be brand new.
@@ -576,6 +592,17 @@ public class Race
             currentHorses.get(i).hardResetConfidence();// reset confidence to what the user initially inputted it as (ignores
                                                        // wins and falls)
             currentHorses.get(i).getHorseRecord().reset(date);
+        }
+    }
+
+    // This function will be used to write the track and horse records into their respective files.
+    //
+    public void saveData()
+    {
+        CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            CSVUtils.AppendToCSV("Part2/Records/horseStats.csv", currentHorses.get(i).getHorseRecord());
         }
     }
 }

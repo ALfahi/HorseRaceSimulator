@@ -12,7 +12,6 @@ import java.util.HashMap;
 import javax.swing.text.NumberFormatter;
 import java.io.*;
 import java.util.List;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -24,10 +23,10 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.14 2/604/2025
+ * @version 1.15 26/04/2025
  * 
- * - race now says the name of the winner.
- * - race stats are now tracked and displayed during a race.
+ * - race stats are now written to a file if the user chooses to save the race information.
+ * - refactored some logic to prevent calling some functions multiple times unnecessarily.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -52,6 +51,7 @@ public class RaceGUI
     private JPanel currentRaceStats = createPanel(new Component[]{},BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
+    private Timer raceTimer; // Move this outside, make it a class field!
 
     //constructor method for this class, initialises the screen.
     //
@@ -406,7 +406,6 @@ public class RaceGUI
         HashMap<String, String> convertOptionsToAnswers = new HashMap<String, String>();
         if (options.length != answers.length)
         {
-            System.out.println("sorry but size of options and answers must be the same.");
             return;
         }
         for (int i =0; i < options.length; i++)
@@ -441,7 +440,6 @@ public class RaceGUI
             return; 
         } 
         // refresh the racetrack before accessing the page
-        race.resetDistanceAllHorses();
         raceTrack.refresh();
         refreshCurrentStats();
         redirectScreen(cardLayout, cardContainer, screenName);
@@ -518,6 +516,28 @@ public class RaceGUI
         // redirect to new screen:
         redirectScreen(cardLayout, cardContainer, screenName);
         
+    }
+
+    // This function will create a pop up screen with options yes or no, if yes is clicked then passed in function will run.
+    //
+    public void createPopUp(String message, Runnable function, Runnable fallBackFunction)
+    {
+        int userResponse = JOptionPane.showOptionDialog(
+            this.screen, // if we pass in this, then it will center it inside the frame (the entire window/ screen)/
+            message, 
+            null,
+            JOptionPane.YES_NO_OPTION, // show "Yes" and "No" buttons
+            JOptionPane.QUESTION_MESSAGE, 
+            null, 
+            null, 
+            JOptionPane.NO_OPTION);// default to the no option
+    
+        // if the user chooses the yes button, then we can run the passed in function.
+        if (userResponse == JOptionPane.YES_OPTION)
+        {
+            function.run();
+        }
+        fallBackFunction.run();
     }
 
     /***********text field action methods **********/
@@ -634,6 +654,7 @@ public class RaceGUI
     private static  void redirectScreen(CardLayout cardLayout, JPanel cardContainer, String newScreen)
     {
         cardLayout.show(cardContainer, newScreen);
+        System.out.println("hello");
     }
 
 
@@ -854,7 +875,7 @@ public class RaceGUI
     
         // creating the jBox to select an item for the horse.
         JLabel itemLabel = new JLabel("Choose an item (optional):");
-        String[] itemTypes = {"No Item", "Weather proof jacket", "Speedy Horseshoe", "Balanced Horseshoe", "winner's saddle"};
+        String[] itemTypes = {"No Item", "Weather proof jacket", "Speedy Horseshoe", "Balanced Horseshoe", "Winner's Saddle"};
         JComboBox<String> itemSelector = new JComboBox<>(itemTypes);
         // a label to tell user what each item does.
         JLabel itemInfoLabel = new JLabel("This horse will have no items.");
@@ -895,11 +916,18 @@ public class RaceGUI
     //
     private JPanel createRaceScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template)
     {
-        JPanel backContainer = createBackButtonPanel(template, cardLayout, cardContainer, "raceSetupScreen");
+        Button backButton = new Button("Back", template);
+        backButton.addAction(e -> {
+            createPopUp("Do you want to save the race data?",
+                () -> race.saveData(),
+                () -> redirectScreen(cardLayout, cardContainer, "raceSetupScreen") );});
+
+        JPanel backContainer = createPanel(new Component[]{backButton.getJButton()}, new FlowLayout(FlowLayout.LEFT), null);
+
 
     // create the other buttons:
     Button replayButton = new Button("replay reace", template);
-    replayButton.addAction(e -> redirectToRace(cardLayout, cardContainer, "raceScreen"));
+    replayButton.addAction(e ->{redirectToRace(cardLayout, cardContainer, "raceScreen");});
 
     // scrollPanes to store both the racce track and also the stats
 
@@ -948,34 +976,13 @@ public class RaceGUI
     //(2 minutes).
     //
     public void startRaceAnimation() 
-        { 
-
-        final long TWOMINUTES = 120000;// move to outer loop
-        long raceStartTimestamp;
-        Timer raceTimer;
-        resetRaceView();
-        //System.out.println("before");
-
-       /*  for (int i = 0; i < race.getTotalLanes(); i++)
-        {
-            if (race.getLane(i).getHorse() != null)
-            {
-                Horse horse = race.getLane(i).getHorse();
-                System.out.println("speed: " + horse.getSpeed() + " base speed: " + horse.getBaseSpeed() + " base confidence " + 
-                horse.getBaseConfidence() + "confidence: " + horse.getConfidence());
-            }
-        }
-        */
-        race.setRandomWeather();
-        raceTrack.setWeather(race.getCurrentWeather());
-        race.resetDistanceAllHorses();
-       // System.out.println("after");
-        // change track background.
-        refreshCurrentStats();
+    { 
+        final long TWOMINUTES =  120000;
+        cleanUpRace();
         //JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
 
         // before the animation  starts we can start another timer which will help us to determine how long it took to win race.
-        raceStartTimestamp = System.currentTimeMillis();
+        long raceStartTimestamp = System.currentTimeMillis();
         raceTimer = new Timer(100, e -> 
         {
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
@@ -986,6 +993,7 @@ public class RaceGUI
             if (race.didremainingHorseFinish(raceStartTimestamp) || race.getRemainingHorses() == 0 || elapsedTime >= TWOMINUTES) 
             {
                 ((Timer) e.getSource()).stop();// stop the race since either all horse eliminated or someone has won.
+                this.raceTimer = null;// clear the timer reference.
     
                 if (race.getRemainingHorses() == 0) 
                 {
@@ -1001,9 +1009,6 @@ public class RaceGUI
                 race.finaliseRaceRecord();
             }
         });
-
-
-    
         raceTimer.start(); // start GUI-friendly race loop ( it doesn't block the thread.)
     }
 
@@ -1080,6 +1085,31 @@ public class RaceGUI
         String formattedDateTime = currenTime.format(formatter);
         return formattedDateTime;
     }
+
+    // This function is used to reset the race timer and do some clean up (e.g. saving race data) when a race forcefull ends
+    // (e.g. user presses replay button or back button)
+    //
+    private void  cleanUpRace()
+    {
+        if (raceTimer != null)
+        {
+            raceTimer.stop();
+            raceTimer = null;
+        }
+        if (race.getRecord().getTotalRounds() > 0)// rounds internally in race starts at 0.
+        {
+            // stop existing race and save the data.
+            race.giveDNFs();
+            race.finaliseRaceRecord();
+        }
+        // setting up for a new race to begin.
+        resetRaceView();
+        race.setRandomWeather();
+        raceTrack.setWeather(race.getCurrentWeather());
+        race.resetDistanceAllHorses();
+        refreshCurrentStats();
+    }
+
     /*********** getters */
 
     // this function just gets the height of the user's screen.
