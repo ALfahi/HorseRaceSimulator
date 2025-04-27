@@ -11,12 +11,10 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.21 27/4/2025
+ * @version 1.22 27/4/2025
  * 
- * 
- * -  added in two more attributes to keep track if user has betted and also of which horse they betted on.
- *  - added in extra logic to keep track and manage the UserBets record.
- * -  saveData now also saves the user's bets.
+ * - added logic to stop betting data from being saved if user didn't bet at all.
+ *
  */
 public class Race
 {
@@ -612,6 +610,7 @@ public class Race
     // and also create a fresh new TrackRecord.
     public void startRecord(String date)
     {
+        this.bettedHorse = null;// reset this variable, as it needs to be reset every racem not every round.
         this.round = 0;// also initialise/ reset the round number to 1 again.
         // this also resets old record if it existed previously.
         this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
@@ -708,7 +707,6 @@ public class Race
         double odds;
         if (hasBetted)// check if the user has betted this round
         {
-            System.out.println(this.bettedHorse.getName());
             odds = this.bettedHorse.getOdds();
             if (this.record.getWinningHorses().getLast().equals(bettingRecord.getNames().getLast()))// user won
             {
@@ -740,7 +738,11 @@ public class Race
         finaliseRaceRecord();
         this.record.setTotalRounds(this.round);// before saving quicly update round to reflect most up to date version.
         CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
-        CSVUtils.AppendToCSV("Part2/Records/Bettings.csv", this.bettingRecord);
+        if (this.bettedHorse != null)// since this does not reset into null until whenever a brandnew race starts
+        // we can use this to check if user even made a bet, if they didn't then no point of saving that file.
+        {
+            CSVUtils.AppendToCSV("Part2/Records/Bettings.csv", this.bettingRecord);
+        }
         for (int i = 0; i < currentHorses.size(); i++)
         {
             CSVUtils.AppendToCSV("Part2/Records/horseStats.csv", currentHorses.get(i).getHorseRecord());

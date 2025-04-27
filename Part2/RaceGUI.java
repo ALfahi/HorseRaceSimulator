@@ -26,10 +26,9 @@ import java.time.format.DateTimeFormatter;
  * @author Fahi Sabab, Al
  * @version 1.17 27/04/2025
  * 
- * - added in function betting methods so user can bet on horses once per race. Result is shown when user leaves the 
- *  race screen before saving data.
- * - betting information can be saved by user if they choose to when leaving the race screen.
- * 
+ * - added in the bettings table so user can see thier past bet history
+ * - user isn't prompted about betting if they haven't made a bet yet.
+ * - fixed bug, if user hasn't made a bet yet, then the betting data isn't saved (the rest is still saved e.g. horse data)
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -539,9 +538,12 @@ public class RaceGUI
              + "your payout even more!!!";
         }
 
-        // Show the final message in a JOptionPane
-        finalMessage = winsMessage + "\n" + performanceMessage;
-        JOptionPane.showMessageDialog(null, finalMessage, "Betting Results", JOptionPane.INFORMATION_MESSAGE);
+        // Show the final message in a JOptionPane only if a bet has been made:
+        if (totalBets > 0)
+        {
+            finalMessage = winsMessage + "\n" + performanceMessage;
+            JOptionPane.showMessageDialog(null, finalMessage, "Betting Results", JOptionPane.INFORMATION_MESSAGE);
+        }
     }
 
      // This function just makes it so that the user can't start a race with less than 2 horses, otherwise it redirects to race.
@@ -833,8 +835,12 @@ public class RaceGUI
         String[] trackRecordsHeader = {"date", "race length", "total lanes", "total rounds", "weather", 
         "average completion speed", "total horses", "total winners", "winning horse", "fastest finish time", 
     "fastest horse", "total falls/ incidents per round" };
-
         String[] trackRecordDefaultValues = {"", "", "", "", "", "DNF", "",  "", "", "n/a", "", "0"};
+
+        // betting table
+        String[] BettingRecordsHeader = {"date", "horse", "did they win?", "winnings", "net earnings" };
+        String [] BettingRecordDefaultValues = {"", "n/a", "n/a", "n/a", ""};
+
         Button addHorseButton = new Button("add Horse", template);
         addHorseButton.addAction(e -> redirectToAddHorsePage(cardLayout, cardContainer, "addHorseScreen"));
         addHorseButton.addAction(e -> refreshComboBox());
@@ -862,8 +868,12 @@ public class RaceGUI
         trackRecords.addAction(
             e -> {createTableFrame("Part2/Records/TrackStats.csv", "past race records", trackRecordsHeader,
             trackRecordDefaultValues);});
+        Button BettingRecords = new Button("Betting history", template);
+        BettingRecords.addAction(
+            e -> {createTableFrame("Part2/Records/Bettings.csv","past Bets", BettingRecordsHeader,
+            BettingRecordDefaultValues);});
             
-        Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton, horseRecords, trackRecords};
+        Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton, horseRecords, trackRecords, BettingRecords};
         JPanel menuButtonContainer = createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1, 0, 20), null);
 
         JPanel centerWrapper = createPanel(new Component[]{menuButtonContainer}, new FlowLayout(FlowLayout.CENTER), null);
