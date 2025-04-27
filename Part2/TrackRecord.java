@@ -16,15 +16,15 @@ public class TrackRecord
     String trackDate;
     int length;
     int laneCount;
-    int horseCount;
+    int totalRounds;
     ArrayList<String> weathers = new ArrayList<>(); 
     ArrayList<Double> averageSpeeds = new ArrayList<>();// average finish time speeds per round.
-    double fastestFinishTime = -1;
-    String fastestHorse;// name of horse who got fastest finish time in entire race so far.
-    ArrayList<Integer> horseFalls = new ArrayList<>();
+    int horseCount;
     int horsesWon;
-    int totalRounds;
-
+    ArrayList<String> winningHorses = new ArrayList<>();
+    double fastestFinishTime = -1;
+    String fastestHorse = "n/a";// name of horse who got fastest finish time in entire race so far.
+    ArrayList<Integer> horseFalls = new ArrayList<>();
     // in race UI we just display round (totalRounds), current weather and fastestFinishTime + horse name;
     // in historical data section we display everything.
 
@@ -104,6 +104,13 @@ public class TrackRecord
         return horsesWon;
     }
 
+    // returns the entire arrayList of winning horses.
+    //
+    public ArrayList<String> getWinningHorses()
+    {
+        return this.winningHorses;
+    }
+
 
     // returns the total number of rounds that this race had.
     public int getTotalRounds() 
@@ -157,7 +164,6 @@ public class TrackRecord
         }
     }
 
-
     // set's the entire horse falling arrayList.
     public void setHorseFalls(ArrayList<Integer> horseFalls) 
     {
@@ -191,6 +197,13 @@ public class TrackRecord
     public void addAverageSpeed(double newSpeed)
     {
         this.averageSpeeds.add(newSpeed);
+    }
+
+    // adds a new winning horse name to the arrayList;
+    //
+    public void addWinningHorseName(String horseName)
+    {
+        this.winningHorses.add(horseName);
     }
 
     // This function just adds a new entry of how many horses fell during this round
@@ -227,10 +240,36 @@ public class TrackRecord
     // Returns a readable string for fastest horse, or "n/a" if none recorded
     public String getReadableFastestHorse() 
     {
-        if (fastestHorse == null || fastestHorse.isEmpty()) {
+        if (fastestHorse == null || fastestHorse.isEmpty()) 
+        {
             return "n/a";
         }
         return fastestHorse;
+    }
+
+    /***** other functions */
+
+    // this function just goes back to fill in any missing data with default ones:
+    //
+    public void fillMissingData(int expectedRounds)
+    {
+        while (winningHorses.size() < expectedRounds)
+        {
+            winningHorses.add("n/a");
+            System.out.println("hello");
+        } 
+        while (averageSpeeds.size() < expectedRounds)
+        {
+            averageSpeeds.add(-1.0);
+        }
+        while (weathers.size() < expectedRounds - 1)
+        {
+            weathers.add("Unknown");
+        } 
+        while (horseFalls.size() < expectedRounds)
+        {
+            horseFalls.add(0);
+        }
     }
 
 

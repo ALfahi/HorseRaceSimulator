@@ -273,6 +273,8 @@ public class Race
         if (finishedCount == 0) // Winner
         { 
             horse.getHorseRecord().setWinNumber(horse.getHorseRecord().getWinNumber() + 1);
+            this.record.getWinningHorses().add(horse.getName());
+            
             if (!horse.getItem().equals("Winner's Saddle")) 
             {
                 horse.setBaseConfidence(horse.getBaseConfidence() * 1.2);
@@ -580,7 +582,7 @@ public class Race
         this.record.addHorseFallStats(totalFalls);
         this.record.setTotalRounds(this.round);// set the new total round value after every race.
         this.round ++;// increment the round number here.
-        // mabye move this into the record itself (e.g. before we save we set the round number to be current weather size).
+        this.record.fillMissingData(this.round);
     }
 
     // This function will reset the horse record to be brand new.
@@ -599,6 +601,7 @@ public class Race
     //
     public void saveData()
     {
+        this.record.setTotalRounds(this.round);// before saving quicly update round to reflect most up to date version.
         CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
         for (int i = 0; i < currentHorses.size(); i++)
         {

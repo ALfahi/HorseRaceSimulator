@@ -12,8 +12,10 @@ import java.lang.reflect.Field;// we use this library to get access to the field
  * This is a little helper utility fileIO class which is used to write and  records/ objects to and from csvs very easily.
  * 
  *  @author Fahi Sabab, Al
- * @version 1.0 26/4/2025
+ * @version 1.1 26/4/2025
  * 
+ * - fixed bug of incorrect return type.
+ * - parser now does't remove the double quotes, that will be dealt by the other classes.
  * 
  */
 
@@ -55,6 +57,7 @@ class CSVUtils
                 Object value = field.get(object);// getting the value inside that field.
                 if (value == null)// skip to next field.
                 {
+                    System.out.println(field);
                     continue;
                 }
                 if (value instanceof List)// the field is some sort of list e.g. arrayList
@@ -93,18 +96,17 @@ class CSVUtils
    // Function to read all data from a specific file, and then we return a 2-d string array (each inner array represents one line
    // within the file)
    //
-    public static String[] getDataFromCSV(String filePath)
+    public static String[][] getDataFromCSV(String filePath)
     {
         ArrayList<String[]> processedData = new ArrayList<>();
+        String[][] ret;
         String line;
         
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath)))
         {
             while ((line = reader.readLine()) != null)
             {
-                // Remove double quotes
-                String processedLine = line.replace("\"", ""); 
-                String[] splitData = processedLine.split(",");  // Split by comma
+                String[] splitData = line.split(",");  // Split by comma
                 
                 // Add each part of the split data to the ArrayList
                 processedData.add(splitData);
@@ -115,6 +117,12 @@ class CSVUtils
             e.printStackTrace();
         }
         
-        return (String []) processedData.toArray();
+        // Now convert the ArrayList into a String[][]
+        ret = new String[processedData.size()][];
+        for (int i = 0; i < processedData.size(); i++) 
+        {
+            ret[i] = processedData.get(i);
+        }
+        return ret;
     }
 }

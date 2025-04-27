@@ -2,26 +2,26 @@ package Part2;
 /* This class is just a record, and it will store some data about specific horses which will then be written to csv.
 *
 * @author Fahi Sabab, Al
-* @version 1.2 25/4/2025
+* @version 1.3 25/4/2025
 * 
 * 
-* - fixed some bugs in how winRatio was caluclated, now it's calculated and siplayed correctly.
+* - added and refactored some attributes to better store useful data.
 */
 import java.util.ArrayList;
 
 class HorseRecord
 {
+    String raceDate;
     String name;
     String breed;
-    ArrayList<Double> confidence = new ArrayList<>();
     String item;
+    ArrayList<Double> confidence = new ArrayList<>();
     int winNumber = 0;
     int lossNumber = 0;
     int fallCount = 0;
     double winLossRatio = 0.0;
     double fastestFinishTime = -1;// default value which will then be overwritten when the specific horse wins.
-    ArrayList<Double> finishTimes;
-    String raceDate;// also stores number of lanes e.g. racedate( 10 lanes)
+   // ArrayList<Double> finishTimes;
     ArrayList<Double> averageSpeed = new ArrayList<>();
     ArrayList<Integer> position = new ArrayList<>();
 

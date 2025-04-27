@@ -12,6 +12,7 @@ import java.util.HashMap;
 import javax.swing.text.NumberFormatter;
 import java.io.*;
 import java.util.List;
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -23,10 +24,9 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.15 26/04/2025
+ * @version 1.16 27/04/2025
  * 
- * - race stats are now written to a file if the user chooses to save the race information.
- * - refactored some logic to prevent calling some functions multiple times unnecessarily.
+ * - added in buttons to show JTbales of all the past saved, horse and race track data.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -163,6 +163,17 @@ public class RaceGUI
          }
 
         return panel;
+    }
+
+    // This function will create a JTable with the passed in header, default values, and a string array of data.
+    //
+    private JTable createJTable(String[] headers, String[]uncleanedData, String[]defaultValues)
+    {
+        String[][] table = generateTableData(uncleanedData, defaultValues);
+         
+        // creating the actual table component
+        JTable tableComponent = new JTable(table, headers);
+        return tableComponent;
     }
 
     // this function is used to create a stats panel for the horses, it will only show the current stats (won't be used to
@@ -654,7 +665,6 @@ public class RaceGUI
     private static  void redirectScreen(CardLayout cardLayout, JPanel cardContainer, String newScreen)
     {
         cardLayout.show(cardContainer, newScreen);
-        System.out.println("hello");
     }
 
 
@@ -676,6 +686,19 @@ public class RaceGUI
     private JPanel createRaceSetupScreen(CardLayout cardLayout, JPanel cardContainer, ButtonTemplate template) 
     {
 
+        // horse table
+        String[] horseRecordHeaders = {"race date", "horse name", "horse breed", "horse item", "horse confidence", 
+        "total wins", "total loss", "total falls", "win ratio", "fastest finish time", "average completion speed", 
+        " finished position"}; 
+        String [] horseRecordDefaultValues = {"", "", "", "", "n/a", "n/a", "n/a","n/a", 
+        "n/a", "DNF", "DNF", "DNF"};
+
+        // track table
+        String[] trackRecordsHeader = {"date", "race length", "total lanes", "total rounds", "weather", 
+        "average completion speed", "total horses", "total winners", "winning horse", "fastest finish time", 
+    "fastest horse", "total falls/ incidents per round" };
+
+        String[] trackRecordDefaultValues = {"", "", "", "", "", "DNF", "",  "", "", "n/a", "", "0"};
         Button addHorseButton = new Button("add Horse", template);
         addHorseButton.addAction(e -> redirectToAddHorsePage(cardLayout, cardContainer, "addHorseScreen"));
         addHorseButton.addAction(e -> refreshComboBox());
@@ -692,9 +715,19 @@ public class RaceGUI
             race.startRecord(generateDateTime());
             redirectToRace(cardLayout, cardContainer, "raceScreen");
         });
-                                                                                // start recording a new race.
-    
-        Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton};
+
+        // buttons leading to the tables
+        Button horseRecords = new Button("horse records", template);
+        horseRecords.addAction(
+            e -> {createTableFrame("Part2/Records/horseStats.csv", "past horse records", horseRecordHeaders,
+             horseRecordDefaultValues);});
+
+        Button trackRecords = new Button("past race records", template);
+        trackRecords.addAction(
+            e -> {createTableFrame("Part2/Records/TrackStats.csv", "past race records", trackRecordsHeader,
+            trackRecordDefaultValues);});
+            
+        Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton, horseRecords, trackRecords};
         JPanel menuButtonContainer = createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1, 0, 20), null);
 
         JPanel centerWrapper = createPanel(new Component[]{menuButtonContainer}, new FlowLayout(FlowLayout.CENTER), null);
@@ -971,6 +1004,33 @@ public class RaceGUI
 
     }
 
+    // This will create a table page/ frame with the passed in values: (it will be in a seperate JFrame)
+    //
+    private void createTableFrame(String fileName, String title, String[] headers, String[] defaultValues)
+    {
+        String[][] allFileData = CSVUtils.getDataFromCSV(fileName);
+        JFrame tableFrame = new JFrame(title);
+        JPanel tablePanel = createPanel(new Component[]{}, BoxLayout.Y_AXIS, null);// stores all the tables.
+        tableFrame.setLayout(new BoxLayout(tableFrame.getContentPane(), BoxLayout.Y_AXIS)); // Stack tables vertically
+        
+        // Creating all the tables and adding them to the tablePanel
+        for (int i = 0; i < allFileData.length; i++)
+        {
+            JTable table = createJTable(headers, allFileData[i], defaultValues);
+            JScrollPane indivisualTableScroller = new JScrollPane(table); // Wrap the table in a JScrollPane
+            tablePanel.add(indivisualTableScroller);
+        }
+
+
+        // Set the frame size and make it visible
+        tableFrame.add(new JScrollPane(tablePanel));// wrap entire window with a scrollbar.
+        tableFrame.setSize(800, 800);
+        tableFrame.setVisible(true);
+        
+        // close the frame without closing the entire app.
+        tableFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    }
+
     // This will replace the race.start() function and allow us to see the race happen in real time.
     // this function acts as the main loop for the race, race ends when either all horses pass finish line, fall or time runs out
     //(2 minutes).
@@ -993,15 +1053,17 @@ public class RaceGUI
             if (race.didremainingHorseFinish(raceStartTimestamp) || race.getRemainingHorses() == 0 || elapsedTime >= TWOMINUTES) 
             {
                 ((Timer) e.getSource()).stop();// stop the race since either all horse eliminated or someone has won.
-                this.raceTimer = null;// clear the timer reference.
-    
-                if (race.getRemainingHorses() == 0) 
+                if (this.raceTimer != null)// if user resets race then don't show if horses fell or won from previous race.
                 {
-                    JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
-                }
-                else
-                {
-                    JOptionPane.showMessageDialog(null, "Winner is: " + race.getLeadHorse().getName());// fix this.
+                    if (race.getRemainingHorses() == 0 ) 
+                    {
+                        JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
+                    }
+                    else
+                    {
+                        System.out.println(this.raceTimer);
+                        JOptionPane.showMessageDialog(null, "Winner is: " + race.getLeadHorse().getName());
+                    }
                 }
                 // now go back to fallen/ active horses and give thier position a -1 (DNF) e.g. they fell or took too long
                 race.giveDNFs();
@@ -1086,6 +1148,7 @@ public class RaceGUI
         return formattedDateTime;
     }
 
+
     // This function is used to reset the race timer and do some clean up (e.g. saving race data) when a race forcefull ends
     // (e.g. user presses replay button or back button)
     //
@@ -1096,12 +1159,13 @@ public class RaceGUI
             raceTimer.stop();
             raceTimer = null;
         }
-        if (race.getRecord().getTotalRounds() > 0)// rounds internally in race starts at 0.
+        if (race.getRecord().getTotalRounds() >= 0)// rounds internally in race starts at 0.
         {
             // stop existing race and save the data.
             race.giveDNFs();
             race.finaliseRaceRecord();
         }
+
         // setting up for a new race to begin.
         resetRaceView();
         race.setRandomWeather();
@@ -1110,6 +1174,86 @@ public class RaceGUI
         refreshCurrentStats();
     }
 
+    // This function will get a string of data and also a string array of default values
+    // it will then generate a 2-d array, making sure to fill in any empty cells withthe default values
+    // it will also take in e.g. -1.0, -1 "" and turn them into a more readable format e.g. 'DNF', specifics
+    // are stroed in defaultValues.
+    //
+    public String[][] generateTableData(String[] data, String[] defaultValues) 
+    {
+        ArrayList<ArrayList<String>> splitData = new ArrayList<>();
+        int maxRows = 0;// some data may be missing a single piece of data at the end due to how race is structured
+        // so we need to keep track what is the max number of rows needed.
+
+        // iterate trhough the columns (each element in the String[] data is a column)
+        //
+        System.out.println(defaultValues.length);
+        for (int i = 0; i < data.length; i++) 
+        {
+            String cell = data[i].trim();
+            System.out.println(cell);
+
+            // remove any quotation marks as they were there only for readability in the file,
+            // won't be needed for the table.
+            if (cell.startsWith("\"") && cell.endsWith("\"") && cell.length() >= 2) 
+            {
+                cell = cell.substring(1, cell.length() - 1);
+            }
+
+            String[] parts = cell.split("\\|");// columns may store multiple vlaues in the file, so we need to split
+                                                    // them up now. (they were seperated by '|', when we wrote data to file.)
+            ArrayList<String> columnValues = new ArrayList<>();// stores every single piece of data for a specific column.
+
+            for (int j = 0; j < parts.length; j++) 
+            {
+                String part = parts[j];
+                part = part.trim();
+                // some default values that we need to clean before putting it into the table.
+                if (part.equals("-1") || part.equals("-1.0") || part.isEmpty()) 
+                {
+                    columnValues.add(defaultValues[i]);
+                } 
+                else 
+                {
+                    columnValues.add(part);
+                }
+            }
+
+            splitData.add(columnValues);
+            maxRows = Math.max(maxRows, columnValues.size());// if we found a column/ array with a bigger size, add a new row.
+        }
+
+        // Fill missing spots with default values
+        for (int i = 0; i < splitData.size(); i++) 
+        {
+            ArrayList<String> column = splitData.get(i);
+            while (column.size() < maxRows) 
+            {
+                column.add(defaultValues[i]);
+            }
+        }
+
+        String[][] tableData = new String[maxRows][defaultValues.length];
+
+        // populate the 2-d array.
+        for (int row = 0; row < maxRows; row++) 
+        {
+            for (int col = 0; col < defaultValues.length; col++) 
+            {
+                if (splitData.get(col).size() > row) // we check if we have column values left to fill out the row
+                {
+                    tableData[row][col] = splitData.get(col).get(row);
+                } 
+                else // otherwise fill it with the default values.
+                {
+                    tableData[row][col] = defaultValues[col];
+                }
+            }
+        }
+        return tableData;
+    }
+
+    
     /*********** getters */
 
     // this function just gets the height of the user's screen.
