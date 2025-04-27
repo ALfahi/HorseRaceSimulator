@@ -24,9 +24,12 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.16 27/04/2025
+ * @version 1.17 27/04/2025
  * 
- * - added in buttons to show JTbales of all the past saved, horse and race track data.
+ * - added in function betting methods so user can bet on horses once per race. Result is shown when user leaves the 
+ *  race screen before saving data.
+ * - betting information can be saved by user if they choose to when leaving the race screen.
+ * 
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -49,6 +52,7 @@ public class RaceGUI
     private static Track editTrack = new Track(race.getAllLanes());
     private JPanel currentStatsContainer =  createPanel(new Component[]{}, BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
     private JPanel currentRaceStats = createPanel(new Component[]{},BoxLayout.Y_AXIS, Color.decode("#FFFDD0"));
+    private JPanel currentBettingContainer = createPanel(new Component[]{}, new GridLayout(2,0), Color.decode("#FFFDD0"));
     private static RaceGUI instance = null;
     private  JComboBox<String> availableLanes = new JComboBox<>();// to do make this not class level later.;
     private Timer raceTimer; // Move this outside, make it a class field!
@@ -207,6 +211,37 @@ public class RaceGUI
         itemLabel, winsLabel, lossesLabel,fallLabel, winRatioLabel, prevAverageTime, fastestTimeLabel, space, space}
         , BoxLayout.Y_AXIS, null);
         return horseStats;
+    }
+
+    // This function will be used to create a JPanel to house all the necessary components needed to bet
+    // and display betting information on a single horse.
+    //
+    private JPanel createhorseBetPanel(Horse horse)
+    {
+        // creating header for each horse betting panel
+        JLabel name = new JLabel(horse.getName());
+        JLabel horseOdd = new JLabel(" Betting odds: " + horse.getOdds());
+
+        JPanel title = createPanel(new Component[]{name, horseOdd}, new FlowLayout(FlowLayout.LEFT), null);
+        // creating title for each horse betting panel.
+        JLabel totalBets = new JLabel("total bets on this horse: " + horse.getTotalBets());
+        JLabel totalAmount = new JLabel("total amount: " + horse.getBettingAmount());
+
+        JLabel bettingtext = new JLabel("choose your betting amount( min £5, max £50):");
+        JTextField bettingField = new JTextField(3);
+        JPanel bettingInput = createPanel(new Component[]{bettingtext, bettingField}, new FlowLayout(FlowLayout.LEFT)
+        , null);
+
+        JPanel body = createPanel(new Component[]{totalBets, totalAmount, bettingInput}, new FlowLayout(FlowLayout.LEFT), null);
+        JPanel bettingInformation = createPanel(new Component[]{title, body}, BoxLayout.Y_AXIS, null);
+
+        JButton button = new JButton("Bet");
+        button.addActionListener(e -> {manageUserBet(bettingField, horse);});
+        // need to change method to a more specific one to keep track of user bets.
+        JPanel bettingContainer = createPanel(new Component[]{bettingInformation, button}, BoxLayout.X_AXIS, null);
+        return bettingContainer;
+
+
     }
 
     // This function will be used to create a small panel for the racetrack showing it's current condtions
@@ -440,6 +475,75 @@ public class RaceGUI
         redirectScreen(cardLayout, cardContainer, screenName);
     }
 
+    // This function just checks if user has betted already, if they didn't then they can bet, otherwise they cant:
+    //
+    private void manageUserBet(JTextField textfield, Horse horse)
+    {
+        if (race.hasUserBetted()) 
+        {
+            JOptionPane.showMessageDialog(null, "You have already placed a bet! You can't bet again.", "Bet Error", JOptionPane.ERROR_MESSAGE);
+        }
+        else
+        {
+            validateNumberTextField(Betting.MAXBETAMOUNT, Betting.MINBETAMOUNT, textfield, 
+            () -> 
+            {
+                // this only runs after we validated that the text field has a correct double, so no errors.
+                double betAmount = Double.parseDouble(textfield.getText());
+                race.handleUserBet(horse, betAmount);  // This method should place the bet
+                JOptionPane.showMessageDialog(null, "Bet placed successfully on " + horse.getName() + "!", "Bet Confirmed", JOptionPane.INFORMATION_MESSAGE);
+            });
+        }
+    }   
+
+    // This function shows the user their betting result.
+    //
+    private void showBetResults()
+    {
+        double wins = 0;
+        int totalBets = 0;
+        final double CUTOFF = (0.5);// a half.
+        double earnings = race.getBettingRecord().getEarnings();
+        int WinRecordSize = race.getBettingRecord().getWinRecord().size();
+        // this message is used if user get's negative final amount.
+        String performanceMessage = "You have lost quite a bit of money, your balance is at " + earnings  + 
+        "consider trying to bet on more safer options to get a positive earning" ;
+        String winsMessage= "";
+        String finalMessage = "";
+        for (int i = 0; i < WinRecordSize; i++)
+        {
+            if (race.getBettingRecord().getWinRecord().get(i).equals("yes"))// user won
+            {
+                wins++;
+                totalBets++;
+            }
+            else if (race.getBettingRecord().getWinRecord().get(i).equals("no"))// user placed a bet and lost.
+            {
+                totalBets++;
+            }
+
+        }
+        if (wins <  totalBets* CUTOFF)// user lost 2/3 of the bets that they made.
+        {
+            winsMessage = "You have only won " + (int)wins + "out of " +  totalBets +". Try different horses or different " + 
+            "items to make the underdogs be useful!!!";
+        }
+        else
+        {
+          winsMessage = "Wow you won " + wins + "out of " + totalBets +", next time try out different horse options" + 
+        " to spice up your betting journey even more";
+        }
+        if (earnings > 0)
+        {
+            performanceMessage = "Wow you have made £" + earnings + "!!!. Consider betting for riskier horses to increase "
+             + "your payout even more!!!";
+        }
+
+        // Show the final message in a JOptionPane
+        finalMessage = winsMessage + "\n" + performanceMessage;
+        JOptionPane.showMessageDialog(null, finalMessage, "Betting Results", JOptionPane.INFORMATION_MESSAGE);
+    }
+
      // This function just makes it so that the user can't start a race with less than 2 horses, otherwise it redirects to race.
     //
     private void redirectToRace(CardLayout cardLayout, JPanel cardContainer, String screenName)
@@ -456,6 +560,38 @@ public class RaceGUI
         redirectScreen(cardLayout, cardContainer, screenName);
         startRaceAnimation();
 
+    }
+
+    // This function will make sure that the data cannot be submitted unless the textField is properly defined.
+    //
+    private void validateNumberTextField(double max, double min, JTextField textField, Runnable action)
+    {
+        String input = textField.getText();
+        if (input.trim().isEmpty() || input.contains(" ") || input == null)
+        {
+            System.out.println("hello world bad input");
+            JOptionPane.showMessageDialog(null, "Please do not leave the field blank or add spaces.",
+             "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        else
+        {
+            if (!isNumber(input) || !hasNDecmialPlaces(input, 2))
+            {
+                JOptionPane.showMessageDialog(null, "It needs to be a number with exactly 2 decimal places"
+                , "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            if (Double.parseDouble(input) > max || Double.parseDouble(input) < min)
+            {
+                JOptionPane.showMessageDialog(null, "Please enter a number between " + min + " and " + 
+                max + ".", "Input Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            action.run();// at this point the code is correct.
+            refreshCurrentStats();
+        }
     }
 
     // This function adds a horse to the lane if the form inputs are valid, otherwise it returns an error message and does nothing
@@ -951,9 +1087,12 @@ public class RaceGUI
     {
         Button backButton = new Button("Back", template);
         backButton.addAction(e -> {
+            showBetResults();
             createPopUp("Do you want to save the race data?",
                 () -> race.saveData(),
-                () -> redirectScreen(cardLayout, cardContainer, "raceSetupScreen") );});
+                () -> redirectScreen(cardLayout, cardContainer, "raceSetupScreen"));
+            stopRaceTimer();
+        });
 
         JPanel backContainer = createPanel(new Component[]{backButton.getJButton()}, new FlowLayout(FlowLayout.LEFT), null);
 
@@ -962,19 +1101,18 @@ public class RaceGUI
     Button replayButton = new Button("replay reace", template);
     replayButton.addAction(e ->{redirectToRace(cardLayout, cardContainer, "raceScreen");});
 
-    // scrollPanes to store both the racce track and also the stats
+    // This panel will house the betting information.
+    JScrollPane bettingScroller = new JScrollPane(this.currentBettingContainer);// add a scroll pane to it.
 
+    // scrollPanes to store both the racce track and also the stats
     // this container will house both the track and also the current race stats/ conditions
     JScrollPane raceTrackJScrollPane = new JScrollPane(raceTrack.getTrackScrollPane());
-    JPanel fullRacePanel = createPanel(new Component[]{this.currentRaceStats, raceTrackJScrollPane}
+    JPanel fullRacePanel = createPanel(new Component[]{this.currentRaceStats, raceTrackJScrollPane, bettingScroller}
     , BoxLayout.Y_AXIS, null);
     JScrollPane statsJScrollPane = new JScrollPane(this.currentStatsContainer);
     refreshCurrentStats();// make sure to refresh the stats container with all the new information.
     // enable scrollbars as needed
-    raceTrackJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-    raceTrackJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-    statsJScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-    statsJScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
 
     // this panel will hold both the track and also the panel to house the information of theindivisual horses
     // e.g. name, confidence etc.
@@ -985,6 +1123,7 @@ public class RaceGUI
     // make sure northContainer only takes up 50% of the screen height.
 
    northContainer.setPreferredSize(new Dimension((int)getScreenWidth(), (int) (getScreenHeight()) / 2));
+
 
     // main panel for this screen.
     JPanel raceScreen = new JPanel();
@@ -1046,6 +1185,7 @@ public class RaceGUI
         raceTimer = new Timer(100, e -> 
         {
             race.randomBet();
+            refreshCurrentStats();
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     
@@ -1062,7 +1202,6 @@ public class RaceGUI
                     }
                     else
                     {
-                        System.out.println(this.raceTimer);
                         JOptionPane.showMessageDialog(null, "Winner is: " + race.getLeadHorse().getName());
                     }
                 }
@@ -1115,11 +1254,13 @@ public class RaceGUI
     private void refreshCurrentStats()
     {
         this.currentStatsContainer.removeAll();
+        this.currentBettingContainer.removeAll();
         for (int i = 0; i <race.getTotalLanes(); i++)
         {
             if (race.getLane(i).getHorse() != null)
             {
                 this.currentStatsContainer.add(createHorseStatsPanel(race.getLane(i).getHorse() , i + 1));
+                this.currentBettingContainer.add(createhorseBetPanel(race.getLane(i).getHorse()));
             }
         }
 
@@ -1133,6 +1274,9 @@ public class RaceGUI
 
         this.currentStatsContainer.revalidate();
         this.currentStatsContainer.repaint();
+
+        this.currentBettingContainer.revalidate();
+        this.currentBettingContainer.repaint();
     }
 
 
@@ -1148,18 +1292,23 @@ public class RaceGUI
         String formattedDateTime = currenTime.format(formatter);
         return formattedDateTime;
     }
-
-
-    // This function is used to reset the race timer and do some clean up (e.g. saving race data) when a race forcefull ends
-    // (e.g. user presses replay button or back button)
+    // This function just stops the current race timer if it still exists.
     //
-    private void  cleanUpRace()
+    private void stopRaceTimer()
     {
         if (raceTimer != null)
         {
             raceTimer.stop();
             raceTimer = null;
         }
+    }
+
+    // This function is used to reset the race timer and do some clean up (e.g. saving race data) when a race forcefull ends
+    // (e.g. user presses replay button or back button)
+    //
+    private void  cleanUpRace()
+    {
+        stopRaceTimer();
         if (race.getRecord().getTotalRounds() >= 0)// rounds internally in race starts at 0.
         {
             // stop existing race and save the data.
@@ -1188,11 +1337,9 @@ public class RaceGUI
 
         // iterate trhough the columns (each element in the String[] data is a column)
         //
-        System.out.println(defaultValues.length);
         for (int i = 0; i < data.length; i++) 
         {
             String cell = data[i].trim();
-            System.out.println(cell);
 
             // remove any quotation marks as they were there only for readability in the file,
             // won't be needed for the table.
@@ -1252,6 +1399,38 @@ public class RaceGUI
             }
         }
         return tableData;
+    }
+
+    // just checks if passed in string is a number (double or int),
+    //
+    private static boolean isNumber(String string) 
+    {
+        try 
+        {
+            Double.parseDouble(string); // Try parsing it as a double (handles both integers and doubles)
+            return true;
+        } 
+        catch (NumberFormatException e) 
+        {
+            return false; // Not a valid number
+        }
+    }
+
+    // just checks if passed in number has n decimal places
+    // pre condtion: passed in string is a number
+    //
+    private static boolean hasNDecmialPlaces(String s, int n)
+    {
+        int start;
+        if (!s.contains("."))
+        {
+            return false;
+        }
+        else
+        {
+            start = s.indexOf(".");
+            return (s.length() - start) - 1 == n;// see if remaining numbers match up to what they wanted.
+        }
     }
 
     

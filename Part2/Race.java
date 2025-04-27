@@ -11,11 +11,12 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.20 26/4/2025
+ * @version 1.21 27/4/2025
  * 
  * 
- * - added a betting feature where the program will randomly bet an mount of money within some predefined bounds, 
- *  based on how good the horse has been performing in this race.
+ * -  added in two more attributes to keep track if user has betted and also of which horse they betted on.
+ *  - added in extra logic to keep track and manage the UserBets record.
+ * -  saveData now also saves the user's bets.
  */
 public class Race
 {
@@ -32,6 +33,9 @@ public class Race
     private String raceStartTime;
     private String currentWeather = "Normal";
     private TrackRecord record;
+    private UserBets bettingRecord;
+    private boolean hasBetted = false;// checks if user has already betted this round.
+    private Horse bettedHorse;// this is here to keep track of which horse the user has betted for per round.
     private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
     static {
         // double values are as follows: confidence (multiplier), speed (additivie), fall chance (multiplier)
@@ -135,12 +139,11 @@ public class Race
     {
         // we will also generate a new betting odds value for the horse here.
         double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
-        double FallChanceModifier =  AllWEATHER.get(this.currentWeather)[1];
+        double FallChanceModifier =  AllWEATHER.get(this.currentWeather)[2];
         String[] currentWeatherValues = {this.currentWeather, String.valueOf(confidenceModifier), String.valueOf(FallChanceModifier)};
         theHorse.setOdds(Betting.calculateOdds(currentWeatherValues, this.record.getWeathers().toArray(new String[0]), 
         theHorse, currentHorses.size()));
 
-        System.out.println(theHorse.getOdds());
         double baseMultiplier = 1.0;// base chance for horse to fall.
         if (theHorse.getItem().equals("Speedy Horseshoe"))
         {
@@ -227,9 +230,12 @@ public class Race
                 lanes.get(i).updateHorseVisual();
             }
         }
+        
         remainingHorses = currentHorses.size();
         activeHorses = currentHorses.size();
+        evaluateUserBet();// if user bet is false, then this functio does nothing which is good.
         this.finishedCount = 0;
+        this.hasBetted = false;// reset the hasBetted variable.
         
     }
 
@@ -293,7 +299,6 @@ public class Race
             amount = Betting.MINBETAMOUNT + (20 - Betting.MINBETAMOUNT) * random.nextDouble();
         }
         horse.addBetAmount(amount);
-        System.out.println(horse.getBettingAmount());
     }
 
     // This function fill be used to decide if AI wats to randomly bet on a horse or not.
@@ -301,7 +306,7 @@ public class Race
     public void randomBet()
     {
         Random random = new Random();
-        int roll =  random.nextInt(10);// 1/10 change for ai to bet on a random horse.
+        int roll =  random.nextInt(30);// 1/30 change for ai to bet on a random horse.
         if (roll == 0)
         {
             roll = random.nextInt(currentHorses.size());// pick out a random horse thats in the race.
@@ -567,6 +572,19 @@ public class Race
         return emptyLanes;
     }
 
+    // This function will get the userBetting record.
+    //
+    public UserBets getBettingRecord()
+    {
+        return this.bettingRecord;
+    }
+
+    // Returns if user has already betted for this round(boolean)
+    //
+    public boolean hasUserBetted()
+    {
+        return this.hasBetted;
+    }
     /**************setter methods ************/
     
     // this function get's a distance and then set's the race's length to that distance.
@@ -597,6 +615,7 @@ public class Race
         this.round = 0;// also initialise/ reset the round number to 1 again.
         // this also resets old record if it existed previously.
         this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
+        this.bettingRecord = new UserBets(date);// reset the user betting history again.
         resetHorseRecords(date);
     }
 
@@ -636,6 +655,12 @@ public class Race
             this.record.addAverageSpeed(averageSpeed / horsesWithValidSpeeds);// only use the valid horses with valid average speed
                                                                              // for calculation.
         }
+
+        // iterate through completed winnings record and calculate their net earnings.
+        for (int i = 0; i < bettingRecord.getWinnings().size(); i++)
+        {
+            bettingRecord.updateEarnings(bettingRecord.getWinnings().get(i));
+        }
         this.record.setHorsesWon(totalWins);
         this.record.addHorseFallStats(totalFalls);
         this.record.setTotalRounds(this.round);// set the new total round value after every race.
@@ -655,12 +680,67 @@ public class Race
         }
     }
 
+    // This function will just add a valid bet to the userBets record and also store the betted amount on the horse itself
+    //
+    public void handleUserBet(Horse horse, double amount)
+    {
+        if (!this.hasBetted)// user hasn't betted yet.
+        {
+            horse.addBetAmount(amount);// add the bet amount to the horse
+            // store dat in the userBets record.
+            bettingRecord.getNames().add(horse.getName());
+            bettingRecord.getWinnings().add(amount);// this specific value will be overwirtten when user wins/ loses
+            this.bettedHorse = horse;
+        }
+        this.hasBetted = true;
+
+    }
+
+    //This function checks if user has betted, and if they did, then thier results are recorded.
+    //
+    public void evaluateUserBet()
+    {
+        double betAmount = 0;
+        if (bettingRecord.getWinnings().size() > 0)
+        {
+            betAmount = bettingRecord.getWinnings().getLast();// how much the user has put into the bet
+        }
+        double odds;
+        if (hasBetted)// check if the user has betted this round
+        {
+            System.out.println(this.bettedHorse.getName());
+            odds = this.bettedHorse.getOdds();
+            if (this.record.getWinningHorses().getLast().equals(bettingRecord.getNames().getLast()))// user won
+            {
+                bettingRecord.getWinRecord().add("yes");
+                System.out.println("user won");
+                bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * odds);
+            }
+            else
+            {
+                bettingRecord.getWinRecord().add("no");
+                System.out.println("user has lost");
+                bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * -1);
+            }
+        }
+        else
+        {
+            // user has not betted this round, populate with default valaues.
+            bettingRecord.getNames().add("n/a");
+            bettingRecord.getWinRecord().add("n/a");
+            bettingRecord.getWinnings().add(0.0);
+        }
+    }
+
     // This function will be used to write the track and horse records into their respective files.
     //
     public void saveData()
     {
+        giveDNFs();
+        finaliseRaceRecord();
         this.record.setTotalRounds(this.round);// before saving quicly update round to reflect most up to date version.
         CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
+        CSVUtils.AppendToCSV("Part2/Records/Bettings.csv", this.bettingRecord);
         for (int i = 0; i < currentHorses.size(); i++)
         {
             CSVUtils.AppendToCSV("Part2/Records/horseStats.csv", currentHorses.get(i).getHorseRecord());
