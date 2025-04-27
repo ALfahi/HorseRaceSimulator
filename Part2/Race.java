@@ -14,8 +14,8 @@ import java.util.Collections;
  * @version 1.20 26/4/2025
  * 
  * 
- * - refactored code to safley store all race data after a race has concluded (either when race ends or user presses
- *  back/ replay).
+ * - added a betting feature where the program will randomly bet an mount of money within some predefined bounds, 
+ *  based on how good the horse has been performing in this race.
  */
 public class Race
 {
@@ -133,7 +133,15 @@ public class Race
      */
     private void moveHorse(Horse theHorse)
     {
-        double baseMultiplier = 1.0;
+        // we will also generate a new betting odds value for the horse here.
+        double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
+        double FallChanceModifier =  AllWEATHER.get(this.currentWeather)[1];
+        String[] currentWeatherValues = {this.currentWeather, String.valueOf(confidenceModifier), String.valueOf(FallChanceModifier)};
+        theHorse.setOdds(Betting.calculateOdds(currentWeatherValues, this.record.getWeathers().toArray(new String[0]), 
+        theHorse, currentHorses.size()));
+
+        System.out.println(theHorse.getOdds());
+        double baseMultiplier = 1.0;// base chance for horse to fall.
         if (theHorse.getItem().equals("Speedy Horseshoe"))
         {
             baseMultiplier = 0.75;
@@ -248,6 +256,56 @@ public class Race
                 lanes.get(i).updateHorseVisual();
 
             }
+        }
+    }
+
+    //This function will get a horse, and then determine how good it's performance is inside the race.
+    // returns how good the horse as a double.
+    //
+    private double getHorsePerformanceValue(Horse horse)
+    {
+        double winRatio = horse.getHorseRecord().getWinLossRatio() * 30;
+        double falls = horse.getHorseRecord().getFallCount();
+        return winRatio - falls;
+
+    }
+
+    // This function will get let a simple AI/algorithm to bet on the selected horse.
+    //
+    private void AIBetOnHorse(Horse horse)
+    {
+        Random random = new Random();
+        double amount = 0;
+        double peformance = getHorsePerformanceValue(horse);
+        if (peformance >= 60)
+        {
+            // AI will bet between 35 and 50
+            amount = 35 + (50 - 35) * random.nextDouble();
+        }
+        else if (peformance >= 20)
+        {
+            // AI will bet between 15 and 35
+            amount = 15 + (35 - 15) * random.nextDouble();
+        }
+        else
+        {
+            // AI will bet between MINBETAMOUNT and 20
+            amount = Betting.MINBETAMOUNT + (20 - Betting.MINBETAMOUNT) * random.nextDouble();
+        }
+        horse.addBetAmount(amount);
+        System.out.println(horse.getBettingAmount());
+    }
+
+    // This function fill be used to decide if AI wats to randomly bet on a horse or not.
+    //
+    public void randomBet()
+    {
+        Random random = new Random();
+        int roll =  random.nextInt(10);// 1/10 change for ai to bet on a random horse.
+        if (roll == 0)
+        {
+            roll = random.nextInt(currentHorses.size());// pick out a random horse thats in the race.
+            AIBetOnHorse(currentHorses.get(roll));
         }
     }
 

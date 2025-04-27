@@ -1045,6 +1045,7 @@ public class RaceGUI
         long raceStartTimestamp = System.currentTimeMillis();
         raceTimer = new Timer(100, e -> 
         {
+            race.randomBet();
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
             race.moveAllHorses(); // handles logic + visuals
     

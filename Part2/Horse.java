@@ -22,9 +22,7 @@ import java.util.Random;
  * @author Fahi Sabab, Al
  * @version 1.9 26/4/2025
  * 
- * - added a new function and attribute to reset horse's base confidence to what the user initially inputted it as,
- *   it ignores previos wins and falls and starts froma  fresh new clean slate.
- * - fixed some rounding error when setting finishTime in horse records (did integer division by accident).
+ * - added in some new attributes to help with implmentation of the betting feature.
  */
 public class Horse
 {
@@ -39,6 +37,9 @@ public class Horse
     private int speed = 0;
     private boolean hasFallen;
     private double confidence;
+    private double bettingAmount;
+    private int totalBets;
+    private double odds;
     // creating some base stat values which will be used to reset horse stats prior to weather conditions
     // (so weather conditions don't stack, but wins/ losses should stack with base speed.)
     private int baseSpeed = speed;
@@ -177,6 +178,27 @@ public class Horse
         return this.baseSpeed;
     }
 
+    // This function get's the total amount of money placed on the specific horse.
+    //
+    public double getBettingAmount()
+    {
+        return this.bettingAmount;
+    }
+
+    // returns the total number of people who bet on this particular horse.
+    //
+    public int getTotalBets()
+    {
+        return this.totalBets;
+    }
+
+    // returns the current odds for this horse:
+    //
+    public double getOdds()
+    {
+        return this.odds;
+    }
+
     // This function returns of what item the horse is currently holding:
     //
     public String getItem()
@@ -274,6 +296,27 @@ public class Horse
     {
         this.speed = speed;
     }
+
+    // This function will set the new betting amout for the horse.
+    //
+    public void setHorseBetAmount(double amount)
+    {
+        this.bettingAmount = amount;
+    }
+
+    // This function will set the total amount of people who have betted on this horse:
+    //
+    public void setTotalBets(int numberOfBets)
+    {
+        this.totalBets = numberOfBets;
+    }
+
+    //This function will set the odds for this horse class.
+    //
+    public void setOdds(double newOdds)
+    {
+        this.odds = newOdds;
+    }
     
     // this function will set the new fastest finish time, but only if it's smaller than the previosu fastest finish time.
     //
@@ -355,5 +398,13 @@ public class Horse
     public void hardResetConfidence()
     {
         this.baseConfidence = this.ORIGINALCONFIDENCE;
+    }
+
+    /***** adders */
+    public void addBetAmount(double newAmount)
+    {
+        this.bettingAmount = this.bettingAmount + newAmount;
+        this.totalBets++;
+        Betting.incrementTotalBets();
     }
 }
