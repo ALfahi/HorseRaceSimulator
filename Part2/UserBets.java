@@ -69,6 +69,8 @@ class UserBets
     //
     public void updateEarnings(double amount)
     {
+        System.out.println("the earnign before is" +this.netEarnings);
         this.netEarnings = this.netEarnings + amount;
+        System.out.println("earning after is" + this.netEarnings);
     }
 }

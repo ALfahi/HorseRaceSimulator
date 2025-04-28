@@ -19,7 +19,6 @@ public class Track
     private List<Lane> lanes;
     private JPanel trackPanel;
     private JScrollPane trackScrollPane;
-    private String weather = "Normal";
     private static final Map<String, Color> WEATHERBACKGROUND = new HashMap<String, Color>();
     static 
     {
@@ -93,7 +92,6 @@ public class Track
     //
     public void setWeather(String weather)
     {
-        this.weather = weather;
         for (int i = 0; i < lanes.size(); i++)
         {
             lanes.get(i).changeColor(WEATHERBACKGROUND.get(weather));

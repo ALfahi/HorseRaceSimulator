@@ -54,6 +54,7 @@ public class Horse
     }
     private double finishTime = -1;
     private boolean finishedRace = false;
+    private final int STRIDE = 6;// e.g. how much distance each step should take.
 
     private HorseRecord record;// a personal record for the horse class.
       
@@ -324,7 +325,7 @@ public class Horse
     {
         double finishTimeInSeconds = finishTime / 1000.0;
         this.finishTime = finishTimeInSeconds ;// update most recent finish time.
-        if ((finishTime < this.record.getFastestFinishTime()) && (this.record.getFastestFinishTime() != -1))
+        if ((finishTimeInSeconds < this.record.getFastestFinishTime()) && (this.record.getFastestFinishTime() != -1))
         {
             this.record.setFastestFinishTime(this.finishTime);
         }
@@ -333,7 +334,7 @@ public class Horse
             this.record.setFastestFinishTime(this.finishTime);
         }
         // also calculate and add the average speed for this race to the records.
-        this.record.addAverageSpeed(this.distanceTravelled / finishTime);
+        this.record.addAverageSpeed((this.distanceTravelled  * Lane.getScale() / finishTimeInSeconds));// we need to scale up the average speed into m/s
     }
 
     /**************other methods for Horse class. **********/
@@ -349,7 +350,6 @@ public class Horse
         if (!(this.item.equals("winner's saddle")))// decrease confidence only if horse isn't wearing the winner's saddle.
         {
             this.setBaseConfidence(this.getBaseConfidence() * 0.7);
-            System.out.println(this.name + "base confidence has decreased");
         }
 
     }
@@ -358,7 +358,7 @@ public class Horse
     //
     public void moveForward()
     {
-        double baseMovement = this.distanceTravelled + getSpeed();
+        double baseMovement = this.distanceTravelled + (getSpeed() * STRIDE);
         if (this.item.equals("Speedy Horseshoe"))
         {
             baseMovement++;

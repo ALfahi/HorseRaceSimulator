@@ -6,6 +6,6 @@ class HorseRaceSimulator{
 
     private static void startRaceGUI()
     {
-        RaceGUI race = RaceGUI.createGUI();
+        RaceGUI.createGUI();
     }
 }

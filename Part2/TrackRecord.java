@@ -256,16 +256,11 @@ public class TrackRecord
         while (winningHorses.size() < expectedRounds)
         {
             winningHorses.add("n/a");
-            System.out.println("hello");
         } 
         while (averageSpeeds.size() < expectedRounds)
         {
             averageSpeeds.add(-1.0);
         }
-        while (weathers.size() < expectedRounds - 1)
-        {
-            weathers.add("Unknown");
-        } 
         while (horseFalls.size() < expectedRounds)
         {
             horseFalls.add(0);

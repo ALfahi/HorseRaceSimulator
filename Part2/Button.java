@@ -115,7 +115,7 @@ public class Button
     {
         button.setEnabled(enabled);
     }
-    /*****************getters  */
+    /*****************getters  ***********/
 
 
     // returns the JButton version to the program

@@ -28,10 +28,9 @@ public class Lane
     ImageIcon horseIcon;
     JLabel finishLine;
     // some dimensions.
-    final static  int SCALE = 20;
+    final static  double SCALE = 2;// each meter represents 1 pixel
     final int FINISHLINEWIDTH = 50;
     final int LANEHEIGHT = 60;// lane width depends on the race length, so don't include here.
-
     // constructor for this class:
     public Lane(int laneNumber, int distance)
     {
@@ -62,12 +61,12 @@ public class Lane
     //
     public void setDistance(int newDistance)
     {
-        lane.setPreferredSize(new Dimension((newDistance * SCALE) + FINISHLINEWIDTH, LANEHEIGHT));
+        lane.setPreferredSize(new Dimension((int) ((newDistance * SCALE) + FINISHLINEWIDTH), LANEHEIGHT));
 
         // Move finish line to new right-side
         if (finishLine != null)
         {
-            finishLine.setBounds(newDistance * SCALE, 0, FINISHLINEWIDTH, LANEHEIGHT);
+            finishLine.setBounds((int)(newDistance * SCALE), 0, FINISHLINEWIDTH, LANEHEIGHT);
         }
         // Revalidate to apply changes
         update();
@@ -92,7 +91,7 @@ public class Lane
 
     // this function returns the scale
     //
-    public static int getScale()
+    public static double getScale()
     {
         return SCALE;
     }
@@ -106,14 +105,14 @@ public class Lane
     {
         JPanel lane = new JPanel();
         lane.setLayout(null);
-        lane.setPreferredSize(new Dimension((distance * SCALE) + FINISHLINEWIDTH, LANEHEIGHT));// add some padding to always show 
+        lane.setPreferredSize(new Dimension((int)((distance * SCALE) + FINISHLINEWIDTH), LANEHEIGHT));// add some padding to always show 
                                                                                                // finish line at end of lane.
         lane.setBorder(BorderFactory.createLineBorder(Color.WHITE));
         lane.setBackground(Color.GREEN); 
 
         // draw on the finish line:
         finishLine = new JLabel(RaceGUI.scaleIcon("Part2/images/finishLine.png", FINISHLINEWIDTH, LANEHEIGHT));
-        finishLine.setBounds(distance  * SCALE, 0, FINISHLINEWIDTH, LANEHEIGHT);
+        finishLine.setBounds((int)(distance  * SCALE), 0, FINISHLINEWIDTH, LANEHEIGHT);
 
         lane.add(finishLine);
         return lane;
@@ -170,8 +169,9 @@ public class Lane
     {
         if (horse != null && horseVisual != null) 
         {
-            int paddingLeft = (2 * SCALE);
-            double position = (horse.getDistanceTravelled() * SCALE) + paddingLeft; // scale: 1 step/ movement is 20px
+            int paddingLeft = (int)(2 * SCALE);
+            // apply speed modifier here to make the race go a bit faster.
+            double position = (horse.getDistanceTravelled() * SCALE) + paddingLeft;
             int yCenter = (lane.getPreferredSize().height - horseVisual.getPreferredSize().height) / 2;
             horseVisual.setLocation((int)position, yCenter);
             update();

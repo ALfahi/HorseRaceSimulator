@@ -24,16 +24,15 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.17 27/04/2025
+ * @version 1.18 27/04/2025
  * 
- * - added in the bettings table so user can see thier past bet history
- * - user isn't prompted about betting if they haven't made a bet yet.
- * - fixed bug, if user hasn't made a bet yet, then the betting data isn't saved (the rest is still saved e.g. horse data)
+ * - added in code to allow the race lengths to dynamically change when the input field in edit race screen gets
+ *  a valid value.
+ * - added a scrollbar to the main page.
+ * - added a check to make sure that we can't add multiple horses with same name.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
- *  - fix back button positioning in some pages
- *  - link up the race edit form to dynamically change the distance and then go through all lanes to change the distance.
  *  - mabye limit number of lanes into (screen height / lane height) / 2.
  *  - fix auto scroll to lead horse feature.
  * 
@@ -64,7 +63,6 @@ public class RaceGUI
         // initialise the screen
         this.screen = new JFrame("GUI Horse Race");
         this.screen.setSize((int) getScreenWidth(),(int) getScreenHeight());// change these later.
-        this.screen.setVisible(true);
         // closes application once user closes the window.
         this.screen.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -87,7 +85,6 @@ public class RaceGUI
 
         // adding in all the panels to the frame/ screen.
         //
-        this.screen.add(cardContainer);
         cardContainer.add(startScreen, "startScreen");
         cardContainer.add(raceSetupScreen, "raceSetupScreen");
         cardContainer.add(editTrackScreen, "editTrackScreen");
@@ -95,9 +92,13 @@ public class RaceGUI
         cardContainer.add(raceScreen, "raceScreen");
 
 
-        
         // show the starting screen:
         cardLayout.show(cardContainer, "startScreen");
+
+        // add a scrollPane to be able to scroll through the entire screen itself.
+        JScrollPane scrollPane = new JScrollPane(cardContainer);
+        this.screen.add(scrollPane);
+        this.screen.setVisible(true);
         
     }
 
@@ -253,9 +254,8 @@ public class RaceGUI
         JLabel weather;
         if (record != null)// if the record has been initialised, then will the panel with the record values.
         {
-            // get totalRounds only increments after a round has ended, so to compensate we just add one here.
-            JLabel round = new JLabel("Round Number " + (record.getTotalRounds() + 1));// this is 
-            // getting most rescent/ current weather from the records.
+            JLabel round = new JLabel("Round Number " + (record.getTotalRounds()));
+            // this is getting most rescent/ current weather from the records.
             if (!(record.getWeathers().size() <= 0))// since this function is called before the race begins,
             // in the beggining we just set the weather to be an empty label, and after the race sets a specifc weather condtition
             // we can finally refresh and add the weather back in.
@@ -506,7 +506,7 @@ public class RaceGUI
         int WinRecordSize = race.getBettingRecord().getWinRecord().size();
         // this message is used if user get's negative final amount.
         String performanceMessage = "You have lost quite a bit of money, your balance is at " + earnings  + 
-        "consider trying to bet on more safer options to get a positive earning" ;
+        " consider trying to bet on more safer options to get a positive earning" ;
         String winsMessage= "";
         String finalMessage = "";
         for (int i = 0; i < WinRecordSize; i++)
@@ -524,17 +524,17 @@ public class RaceGUI
         }
         if (wins <  totalBets* CUTOFF)// user lost 2/3 of the bets that they made.
         {
-            winsMessage = "You have only won " + (int)wins + "out of " +  totalBets +". Try different horses or different " + 
+            winsMessage = "You have only won " + (int)wins + " out of " +  totalBets +". Try different horses or different " + 
             "items to make the underdogs be useful!!!";
         }
         else
         {
-          winsMessage = "Wow you won " + wins + "out of " + totalBets +", next time try out different horse options" + 
+          winsMessage = "Wow you won " + wins + " out of " + totalBets +", next time try out different horse options" + 
         " to spice up your betting journey even more";
         }
         if (earnings > 0)
         {
-            performanceMessage = "Wow you have made £" + earnings + "!!!. Consider betting for riskier horses to increase "
+            performanceMessage = "Wow you have made £ " + earnings + " !!!. Consider betting for riskier horses to increase "
              + "your payout even more!!!";
         }
 
@@ -556,11 +556,10 @@ public class RaceGUI
             , "Input Error", JOptionPane.ERROR_MESSAGE);
             return; 
         } 
-        // refresh the racetrack before accessing the page
+        // refresh the page before going to the page.
         raceTrack.refresh();
         refreshCurrentStats();
         redirectScreen(cardLayout, cardContainer, screenName);
-        startRaceAnimation();
 
     }
 
@@ -571,7 +570,6 @@ public class RaceGUI
         String input = textField.getText();
         if (input.trim().isEmpty() || input.contains(" ") || input == null)
         {
-            System.out.println("hello world bad input");
             JOptionPane.showMessageDialog(null, "Please do not leave the field blank or add spaces.",
              "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -623,6 +621,11 @@ public class RaceGUI
         else if (horseName.contains(",") || horseName.contains("|"))
         {
             JOptionPane.showMessageDialog(null, "Horse name cannot contain '|' or ',' !", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return; 
+        }
+        else if (!race.isUniqueHorse(horseName))
+        {
+            JOptionPane.showMessageDialog(null, "Sorry but this name is already in use.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return; 
         }
         
@@ -725,18 +728,6 @@ public class RaceGUI
             // enable/ disable the appropriate buttons when the user types in 20 or 2.
             plusButton.setEnabled(race.getTotalLanes() < race.getMaxLanes());
             minusButton.setEnabled(race.getTotalLanes() > 2);
-        };
-    
-        return listener;
-    }
-
-     // returns a PropertyChangeListener instance,
-    //
-    private PropertyChangeListener updateDistanceListener() 
-    {
-        PropertyChangeListener listener = event -> {
-            int newDistance = (int) ((JFormattedTextField) event.getSource()).getValue();
-            race.setRaceLength(newDistance);
         };
     
         return listener;
@@ -906,8 +897,13 @@ public class RaceGUI
                 minusButton.getJButton()},new FlowLayout(), null);
     
         //  track length form/ controls
-        JLabel trackDistanceLabel = new JLabel("Track Length (max 100, min 30m):");
-        JFormattedTextField distanceInput = createIntegerTextField(30, 100, updateDistanceListener());
+        JLabel trackDistanceLabel = new JLabel("Track Length (max " + race.getMinDistance() + ", min " + race.getMaxDistance() + "30m):");
+        JFormattedTextField distanceInput = createIntegerTextField(race.getMinDistance(), race.getMaxDistance(), e -> 
+        {
+            // get the valid integer from the field and pass it into the tace function.
+            int newDistance = Integer.parseInt(((JFormattedTextField) e.getSource()).getText()); 
+            race.setRaceLength(newDistance); 
+        });// Set the new distance);
     
         JPanel trackLengthPanel = createPanel(new Component[] {trackDistanceLabel, distanceInput},new FlowLayout(), null);
     
@@ -1109,7 +1105,12 @@ public class RaceGUI
 
     // create the other buttons:
     Button replayButton = new Button("replay reace", template);
-    replayButton.addAction(e ->{redirectToRace(cardLayout, cardContainer, "raceScreen");});
+    replayButton.addAction(e ->{// refresh the racetrack before accessing the page
+        race.resetDistanceAllHorses();
+        raceTrack.refresh();
+        refreshCurrentStats();
+        redirectScreen(cardLayout, cardContainer, "raceScreen");
+        startRaceAnimation();});
 
     // This panel will house the betting information.
     JScrollPane bettingScroller = new JScrollPane(this.currentBettingContainer);// add a scroll pane to it.
@@ -1188,12 +1189,14 @@ public class RaceGUI
     { 
         final long TWOMINUTES =  120000;
         cleanUpRace();
+        race.incrementRound();
         //JScrollPane raceTJScrollPane = raceTrack.getTrackScrollPane();// this will always be the JScrollPane
 
         // before the animation  starts we can start another timer which will help us to determine how long it took to win race.
         long raceStartTimestamp = System.currentTimeMillis();
         raceTimer = new Timer(100, e -> 
         {
+            race.setStartedRace(true);
             race.randomBet();
             refreshCurrentStats();
             //followLeadHorse(raceTJScrollPane, race.getLeadHorse());
@@ -1209,6 +1212,7 @@ public class RaceGUI
                     if (race.getRemainingHorses() == 0 ) 
                     {
                         JOptionPane.showMessageDialog(null, "All horses have fallen. No winner.");
+                        race.getRecord().getWinningHorses().add("n/a");
                     }
                     else
                     {
@@ -1219,6 +1223,7 @@ public class RaceGUI
                 race.giveDNFs();
                 // and finally finalise the race records.
                 race.finaliseRaceRecord();
+                race.evaluateUserBet();
             }
         });
         raceTimer.start(); // start GUI-friendly race loop ( it doesn't block the thread.)
@@ -1234,7 +1239,7 @@ public class RaceGUI
         {
             // Calculate the scroll position based on the lead horse's distance
             int maxScroll = raceTrackJScrollPane.getHorizontalScrollBar().getMaximum();
-            int leadHorsePosition =(int) leadHorse.getDistanceTravelled() * Lane.getScale();
+            int leadHorsePosition =(int) (leadHorse.getDistanceTravelled() * Lane.getScale());
     
             // Scroll only when the lead horse moves out of view (i.e., it is near the edge of the visible area)
             if (leadHorsePosition > horizontalScrollBar.getValue() + raceTrackJScrollPane.getViewport().getWidth()) 
@@ -1319,7 +1324,7 @@ public class RaceGUI
     private void  cleanUpRace()
     {
         stopRaceTimer();
-        if (race.getRecord().getTotalRounds() >= 0)// rounds internally in race starts at 0.
+        if (race.hasRaceStarted())// rounds started from before, same them.
         {
             // stop existing race and save the data.
             race.giveDNFs();
@@ -1330,7 +1335,6 @@ public class RaceGUI
         resetRaceView();
         race.setRandomWeather();
         raceTrack.setWeather(race.getCurrentWeather());
-        race.resetDistanceAllHorses();
         refreshCurrentStats();
     }
 

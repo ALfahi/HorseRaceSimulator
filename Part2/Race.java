@@ -11,28 +11,34 @@ import java.util.Collections;
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.22 27/4/2025
+ * @version 1.23 28/4/2025
  * 
- * - added logic to stop betting data from being saved if user didn't bet at all.
+ * - gave the horse races a more realistic distance range.
+ * - fixed bug of not resetting horse odds and bet amounts etc whenever a brand new race is started.
+ * - fixed bug of always adding in an extra row when saving horse/ track data.
+ * - added in check to prevent excess rows for betting data.
+ * - added in function to remove any excess rows for both horse amd record data.
  *
  */
 public class Race
 {
-    private int raceLength = 30;// default value
+    private final int MAXLANES = 10;// maximum number of lanes that the program will allow
+    private final int MAXDISTANCE = 2400;
+    private final int  MINDISTANCE= 500;
+    private int raceLength = MINDISTANCE;// default value
     private List<Lane> lanes = new ArrayList<>();// use an arrayList to dynamically store the current number of lanes.
     private List<Horse> currentHorses = new ArrayList<>();// store all the used horses.
     public int activeHorses; // used to represent horses who have yet to finish race and has not fell.
     private int finishedCount = 0;// a counter of the number of horses who finished race.
-    private final int MAXLANES = 20;// maximum number of lanes that the program will allow
-    private final int MAXDISTANCE = 30;
-    private final int  MINDISTANCE= 100;
     private int round = 0;
+    private int totalFalls = 0;// keeps track of number of horses which fell this round.
     private int remainingHorses = 0;
     private String raceStartTime;
     private String currentWeather = "Normal";
     private TrackRecord record;
     private UserBets bettingRecord;
     private boolean hasBetted = false;// checks if user has already betted this round.
+    private boolean raceStarted = false;
     private Horse bettedHorse;// this is here to keep track of which horse the user has betted for per round.
     private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
     static {
@@ -105,7 +111,7 @@ public class Race
         initialiseLanes(2);
         this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
-        this.raceLength = 30;// default value
+        this.raceLength = MINDISTANCE;// default value
         this.finishedCount = 0;
     }
 
@@ -162,6 +168,7 @@ public class Race
             if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence() * AllWEATHER.get(this.currentWeather)[2]
              * baseMultiplier))
             {
+                this.totalFalls++;
                 theHorse.fall();
                 this.activeHorses --;
                 remainingHorses --;
@@ -187,14 +194,14 @@ public class Race
         }
     }
 
-    // checks if the passed in symbol is already in use by another horse.
+    // checks if the passed in name is already in use by another horse.
     // if it is, then return false, otherwise return true.
     //
-    private boolean isUniqueHorse(char symbol)
+    public boolean isUniqueHorse(String name)
     {
         for (int i = 0; i < currentHorses.size(); i++)
         {
-            if (currentHorses.get(i).getSymbol() == symbol)
+            if (currentHorses.get(i).getName().equals(name))
             {
                 return false;
             }
@@ -231,9 +238,8 @@ public class Race
         
         remainingHorses = currentHorses.size();
         activeHorses = currentHorses.size();
-        evaluateUserBet();// if user bet is false, then this functio does nothing which is good.
         this.finishedCount = 0;
-        this.hasBetted = false;// reset the hasBetted variable.
+        this.totalFalls = 0;
         
     }
 
@@ -268,7 +274,7 @@ public class Race
     //
     private double getHorsePerformanceValue(Horse horse)
     {
-        double winRatio = horse.getHorseRecord().getWinLossRatio() * 30;
+        double winRatio = horse.getHorseRecord().getWinLossRatio() * 30;// random scale value
         double falls = horse.getHorseRecord().getFallCount();
         return winRatio - falls;
 
@@ -531,6 +537,12 @@ public class Race
         return this.raceStartTime;
     }
 
+    //This function checks if the race has started.
+    public boolean hasRaceStarted()
+    {
+        return this.raceStarted;
+    }
+
     // This function is used to get the race's record.
     //
     public TrackRecord getRecord()
@@ -596,11 +608,26 @@ public class Race
         }
     }
 
+    // we can set if the race has started to true or false with this function
+    //
+    public void setStartedRace(boolean started)
+    {
+        this.raceStarted = started;
+    }
+
     // this function will set the raceStartTime attribute:
     //
     public void setRaceStartTime(String newTime)
     {
         this.raceStartTime = newTime;
+    }
+
+    // This function increments the race's round varibale:
+    //
+    public void incrementRound()
+    {
+        this.round++;
+        this.record.setTotalRounds(round);// make sure to update the record.
     }
 
 
@@ -616,14 +643,15 @@ public class Race
         this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
         this.bettingRecord = new UserBets(date);// reset the user betting history again.
         resetHorseRecords(date);
+        resetHorseBets();
     }
 
     public void finaliseRaceRecord()
     {
         int totalWins = 0;
-        int totalFalls = 0;
         double averageSpeed = 0.0;
         int horsesWithValidSpeeds = currentHorses.size();
+        this.raceStarted = false;
         for (int i = 0; i < currentHorses.size(); i++)
         {
             // get each horse's record/ stats.
@@ -634,7 +662,6 @@ public class Race
             }
 
             totalWins = totalWins + horseStats.getWinNumber();
-            totalFalls = totalFalls + horseStats.getFallCount();
             if (horseStats.getAverageSpeed().get(round) != -1.0)
             {
                 averageSpeed = averageSpeed + horseStats.getAverageSpeed().get(round);
@@ -655,16 +682,13 @@ public class Race
                                                                              // for calculation.
         }
 
-        // iterate through completed winnings record and calculate their net earnings.
-        for (int i = 0; i < bettingRecord.getWinnings().size(); i++)
-        {
-            bettingRecord.updateEarnings(bettingRecord.getWinnings().get(i));
-        }
         this.record.setHorsesWon(totalWins);
-        this.record.addHorseFallStats(totalFalls);
-        this.record.setTotalRounds(this.round);// set the new total round value after every race.
-        this.round ++;// increment the round number here.
+        this.record.addHorseFallStats(this.totalFalls);
         this.record.fillMissingData(this.round);
+        if (this.record.getTotalRounds() < this.round)
+        {
+            this.record.setTotalRounds(this.round);
+        }
     }
 
     // This function will reset the horse record to be brand new.
@@ -676,6 +700,18 @@ public class Race
             currentHorses.get(i).hardResetConfidence();// reset confidence to what the user initially inputted it as (ignores
                                                        // wins and falls)
             currentHorses.get(i).getHorseRecord().reset(date);
+        }
+    }
+
+    // This function will go around and reset the bet amount, total bets and odds on every horse.
+    //
+    private void resetHorseBets()
+    {
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            currentHorses.get(i).setHorseBetAmount(0.0);
+            currentHorses.get(i).setTotalBets(0);
+            currentHorses.get(i).setOdds(0);
         }
     }
 
@@ -697,39 +733,44 @@ public class Race
 
     //This function checks if user has betted, and if they did, then thier results are recorded.
     //
-    public void evaluateUserBet()
+    public void evaluateUserBet() 
     {
         double betAmount = 0;
-        if (bettingRecord.getWinnings().size() > 0)
-        {
-            betAmount = bettingRecord.getWinnings().getLast();// how much the user has put into the bet
-        }
+        int winningsLastIndex = 0;
         double odds;
-        if (hasBetted)// check if the user has betted this round
-        {
+        int winningHorseIndex = this.record.getWinningHorses().size() -1;
+        if (this.bettingRecord == null || this.bettedHorse == null) {
+            return;
+        }
+    
+        if (hasBetted) 
+        { // check if the user has betted this round
             odds = this.bettedHorse.getOdds();
-            if (this.record.getWinningHorses().getLast().equals(bettingRecord.getNames().getLast()))// user won
+            betAmount = bettingRecord.getWinnings().get(winningsLastIndex);
+            // if winning names are empty or the last winning horse does not match with what user has betted for: they lost.
+            if (!this.record.getWinningHorses().isEmpty())
             {
-                bettingRecord.getWinRecord().add("yes");
-                System.out.println("user won");
-                bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * odds);
+                if (!this.record.getWinningHorses().get(winningHorseIndex).equals(this.bettedHorse.getName())) // user lost.
+                {
+                    bettingRecord.getWinRecord().add("no");
+                    bettingRecord.getWinnings().set(winningsLastIndex, betAmount * -1);
+                    bettingRecord.updateEarnings(bettingRecord.getWinnings().get(winningsLastIndex));
+                }
+                else// user won.
+                {
+                    bettingRecord.getWinRecord().add("yes");
+                    bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * odds);
+                    bettingRecord.updateEarnings(bettingRecord.getWinnings().get(winningsLastIndex));
+                }
             }
             else
             {
                 bettingRecord.getWinRecord().add("no");
-                System.out.println("user has lost");
-                bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * -1);
             }
-        }
-        else
-        {
-            // user has not betted this round, populate with default valaues.
-            bettingRecord.getNames().add("n/a");
-            bettingRecord.getWinRecord().add("n/a");
-            bettingRecord.getWinnings().add(0.0);
+            this.hasBetted = false;// reset this.
         }
     }
-
+    
     // This function will be used to write the track and horse records into their respective files.
     //
     public void saveData()
@@ -737,6 +778,12 @@ public class Race
         giveDNFs();
         finaliseRaceRecord();
         this.record.setTotalRounds(this.round);// before saving quicly update round to reflect most up to date version.
+
+        // trim off any excess duplicate data for the track record.
+        trimListToRound(this.record.getAverageSpeed());
+        trimListToRound(this.record.getWinningHorses());
+        trimListToRound(this.record.getHorseFalls());
+        trimListToRound(this.record.getWeathers());
         CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
         if (this.bettedHorse != null)// since this does not reset into null until whenever a brandnew race starts
         // we can use this to check if user even made a bet, if they didn't then no point of saving that file.
@@ -745,7 +792,20 @@ public class Race
         }
         for (int i = 0; i < currentHorses.size(); i++)
         {
+            // remove any duplicate redundant data.
+            trimListToRound(currentHorses.get(i).getHorseRecord().getPosition());
+            trimListToRound(currentHorses.get(i).getHorseRecord().getConfidence());
+            trimListToRound(currentHorses.get(i).getHorseRecord().getAverageSpeed());
             CSVUtils.AppendToCSV("Part2/Records/horseStats.csv", currentHorses.get(i).getHorseRecord());
+        }
+    }
+
+    //This function will get passed in a list and then truncate it to the right length (used to remove any redundant data)
+    //
+    private <T> void trimListToRound(List<T> list) {
+        while (list.size() > this.round) 
+        {
+            list.remove(list.size() - 1);
         }
     }
 }
