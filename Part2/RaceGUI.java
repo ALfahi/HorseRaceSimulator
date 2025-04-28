@@ -24,12 +24,11 @@ import java.time.format.DateTimeFormatter;
  * - instance: holds the single active instance of RaceGUI (used to enforce the singleton property of this class)
  * 
  * @author Fahi Sabab, Al
- * @version 1.18 27/04/2025
+ * @version 1.19 27/04/2025
  * 
- * - added in code to allow the race lengths to dynamically change when the input field in edit race screen gets
- *  a valid value.
- * - added a scrollbar to the main page.
- * - added a check to make sure that we can't add multiple horses with same name.
+ * 
+ * - gave table buttons a new look to differentiate form menu buttons.
+ * - renamed the replay button's text to start race to make it more obvious of button's purpose.
  * TO DO: 
  *  - add another overloaded method of createPanel which takes in (component, component, component, component,, component, Color)
  *    where each attribute is NORTH, SOUTH, EAST, WEST, CENTER for Borderbox layout.
@@ -850,24 +849,27 @@ public class RaceGUI
         });
 
         // buttons leading to the tables
-        Button horseRecords = new Button("horse records", template);
+        Button horseRecords = new Button("horse records", null);
         horseRecords.addAction(
             e -> {createTableFrame("Part2/Records/horseStats.csv", "past horse records", horseRecordHeaders,
              horseRecordDefaultValues);});
 
-        Button trackRecords = new Button("past race records", template);
+        Button trackRecords = new Button("past race records", null);
         trackRecords.addAction(
             e -> {createTableFrame("Part2/Records/TrackStats.csv", "past race records", trackRecordsHeader,
             trackRecordDefaultValues);});
-        Button BettingRecords = new Button("Betting history", template);
+        Button BettingRecords = new Button("Betting history", null);
         BettingRecords.addAction(
             e -> {createTableFrame("Part2/Records/Bettings.csv","past Bets", BettingRecordsHeader,
             BettingRecordDefaultValues);});
+
+        JPanel tableButtonPanel = createPanel(new Component[]{horseRecords.getJButton(), trackRecords.getJButton(), 
+            BettingRecords.getJButton()}, new FlowLayout(FlowLayout.CENTER), null);
             
         Button[] raceSetupButtons = {editTrackButton, addHorseButton, startRaceButton, horseRecords, trackRecords, BettingRecords};
         JPanel menuButtonContainer = createPanel(convertButtonArrayToJButtons(raceSetupButtons), new GridLayout(3, 1, 0, 20), null);
 
-        JPanel centerWrapper = createPanel(new Component[]{menuButtonContainer}, new FlowLayout(FlowLayout.CENTER), null);
+        JPanel centerWrapper = createPanel(new Component[]{menuButtonContainer, tableButtonPanel}, new FlowLayout(FlowLayout.CENTER), null);
         
         // this is the main panel for this screen (will contain every other component)
         JPanel backButtonContainer = createBackButtonPanel(template, cardLayout, cardContainer, "startScreen");
@@ -1104,7 +1106,7 @@ public class RaceGUI
 
 
     // create the other buttons:
-    Button replayButton = new Button("replay reace", template);
+    Button replayButton = new Button("Start Race", template);
     replayButton.addAction(e ->{// refresh the racetrack before accessing the page
         race.resetDistanceAllHorses();
         raceTrack.refresh();

@@ -82,16 +82,19 @@ public class Button
     //
     private void applyStyles(ButtonTemplate template)
     {
-        button.setBackground(Color.decode(template.getBackgroundColor()));
-        button.setForeground(Color.decode(template.getForegroundColor()));
-        button.setFont(new Font(template.getFont(), template.getFontWeight(), template.getFontSize() ));
-        button.setPreferredSize(new Dimension(template.getWidth(), template.getHeight()));
-
-        // code to show the button's border properly:
-        button.setOpaque(true);
-        button.setContentAreaFilled(true);
-        button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
-        button.setFocusPainted(false);
+        if (template != null)
+        {
+            button.setBackground(Color.decode(template.getBackgroundColor()));
+            button.setForeground(Color.decode(template.getForegroundColor()));
+            button.setFont(new Font(template.getFont(), template.getFontWeight(), template.getFontSize() ));
+            button.setPreferredSize(new Dimension(template.getWidth(), template.getHeight()));
+    
+            // code to show the button's border properly:
+            button.setOpaque(true);
+            button.setContentAreaFilled(true);
+            button.setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+            button.setFocusPainted(false);
+        }
     }
 
      // used to efficiecntly make buttons have the action to swap between one panel to another.
