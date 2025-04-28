@@ -1,43 +1,103 @@
-package Part1;
+package Part2;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.Random;
 /**
  * This is the Horse class, horses are instantiated from this class, they have the follwoing attributes:
  * - name: the horse's name
- * - horseSymbol: what symbol/ character to depict the horse during a race.
+ * - type: what type of horse it is e.g. Wild, Arabian etc.
+ * - horseImagePath: the image path to the corresponding horse icon, (used to display horse in GUI).
+ * - horseSymbol: what symbol/ character to depict the horse during a race, (an alterantive way to display horse).
  * - distanceTravelled: how far the horse has travelled during a race.
  * - hasFallen: a boolean variable to check if the horse has fell
  * - confidence: a double variable depicting how confident a horse is where higher confidence = faster speeds but more prone to falling
  *               and vice versa.
+ * - backUpSymbol: stores the horse's usual symbol.
+ * - death symbol: what the horse will be displayed as when they fall.
+ * - TYPETOSPEED: maps each possible horse type (minus wild horse) to a set speed multiplier (integer)
  *   if a horse has fallen, they can't move for that current race, and their confidence decreases
  *   if a horse wins a race, their confidence increases.
  * 
  * @author Fahi Sabab, Al
- * @version 1.3 10/4/2025
- * - added in an extra function to display the horses stats (it's name and confidence)
+ * @version 1.9 26/4/2025
+ * 
+ * - added in some new attributes to help with implmentation of the betting feature.
  */
 public class Horse
 {
     //Fields of class Horse
     private String name;
+    private String type;
+    private String horseImagePath = "";
     private char horseSymbol;
-    private int distanceTravelled;
+    private char backupSymbol;
+    private final char deathSymbol = '❌';
+    private double distanceTravelled;
+    private int speed = 0;
     private boolean hasFallen;
     private double confidence;
-    
+    private double bettingAmount;
+    private int totalBets;
+    private double odds;
+    // creating some base stat values which will be used to reset horse stats prior to weather conditions
+    // (so weather conditions don't stack, but wins/ losses should stack with base speed.)
+    private int baseSpeed = speed;
+    private double baseConfidence;
+    private final double ORIGINALCONFIDENCE;
+    private String item;
+    private static final Map<String, Integer> TYPETOSPEED = new HashMap<String, Integer>();
+    static {
+        TYPETOSPEED.put("Arabian", 1);
+        TYPETOSPEED.put("Quarter Horse", 2);
+        TYPETOSPEED.put("Thoroughbred", 3);
+    }
+    private double finishTime = -1;
+    private boolean finishedRace = false;
+    private final int STRIDE = 6;// e.g. how much distance each step should take.
+
+    private HorseRecord record;// a personal record for the horse class.
       
     /*
-     * Constructor for objects of class Horse
+     * Constructors for objects of class Horse
      */
-    public Horse(char horseSymbol, String horseName, double horseConfidence)
+    
+    // Base constructor holding shared logic
+    private Horse(String horseName, double horseConfidence, String type, String item) 
     {
-        // initialise instance variables
-        this.horseSymbol = horseSymbol;
         this.name = horseName;
         this.confidence = horseConfidence;
+        this.baseConfidence = horseConfidence;
+        this.ORIGINALCONFIDENCE = horseConfidence;
         this.distanceTravelled = 0;
         this.hasFallen = false;
-       
+        this.type = type;
+        this.item = item;
+
+        if (!type.equals("Wild")) {
+            this.speed = TYPETOSPEED.get(type);
+            this.baseSpeed = this.speed;
+        }
+
+        // populate the horse record with initial values
+        this.record = new HorseRecord(horseName, type, item);
+        this.record.addConfidence(horseConfidence);
+    }
+
+    // constructor which uses symbols to display horse:
+    public Horse(char horseSymbol, String horseName, double horseConfidence, String type, String item) 
+    {
+        this(horseName, horseConfidence, type, item);
+        this.horseSymbol = horseSymbol;
+        this.backupSymbol = horseSymbol;
     }
     
+    // consturctor which uses an imagePath to display horse:
+    public Horse(String imagePath, String horseName, double horseConfidence, String type, String item) 
+    {
+        this(horseName, horseConfidence, type, item);
+        this.horseImagePath = imagePath;
+    }
     
     
     /******getters and setters for the horse class. ******/
@@ -48,10 +108,17 @@ public class Horse
     {
         return this.confidence;
     }
+
+    // returns the base confidence of the horse (double)
+    //
+    public double getBaseConfidence()
+    {
+        return this.baseConfidence;
+    }
     
     //returns the current distance travelled of the horse as an integer.
     //
-    public int getDistanceTravelled()
+    public double getDistanceTravelled()
     {
         return this.distanceTravelled;
     }
@@ -69,12 +136,96 @@ public class Horse
     {
         return this.horseSymbol;
     }
+
+    // returns the backed up symbol
+    //
+    public char getBackUpSymbol()
+    {
+        return this.backupSymbol;
+    }
+
+    // returns the death or eliminated symbol of the horse
+    //
+    public char getDeathSymbol()
+    {
+        return this.deathSymbol;
+    }
+
+    // returns the specific image path for the horse. (returns a string)
+    //
+    public String getImagePath()
+    {
+        return this.horseImagePath;
+    }
+
+    // this returns the type of horse.
+    //
+    public String getType()
+    {
+        return this.type;
+    }
+
+    // This functions returns the speed with the modifier included.
+    //
+    public int getSpeed()
+    {
+       return this.speed;
+    }
+
+    // this function returns the base speed multiplier.
+    //
+    public int getBaseSpeed()
+    {
+        return this.baseSpeed;
+    }
+
+    // This function get's the total amount of money placed on the specific horse.
+    //
+    public double getBettingAmount()
+    {
+        return this.bettingAmount;
+    }
+
+    // returns the total number of people who bet on this particular horse.
+    //
+    public int getTotalBets()
+    {
+        return this.totalBets;
+    }
+
+    // returns the current odds for this horse:
+    //
+    public double getOdds()
+    {
+        return this.odds;
+    }
+
+    // This function returns of what item the horse is currently holding:
+    //
+    public String getItem()
+    {
+        return this.item;
+    }
     
     // returns a boolean value, depicting if the horse has fallen or not, returns true if it has fallen, false otherwise.
     //
     public boolean hasFallen()
     {
         return this.hasFallen;
+    }
+
+    // returns if the horse has finished the race.
+    //
+    public boolean hasFinishedRace()
+    {
+        return this.finishedRace;
+    }
+
+    // this function returns the record.
+    //
+    public HorseRecord getHorseRecord()
+    {
+        return this.record;
     }
 
 
@@ -96,6 +247,24 @@ public class Horse
         this.confidence = newConfidence;
        
     }
+
+    // this function is used to set the base confidence:
+    //
+    public void setBaseConfidence(double newConfidence)
+    {
+        if (newConfidence <0.0)
+        {
+            newConfidence = 0.0;
+        }
+        else if (newConfidence > 1.0)
+        {
+            newConfidence = 1.0;
+        }
+       
+        this.baseConfidence = newConfidence;
+    }
+
+    // this is used to 
     
     // set's the horse's symbol with a new symbol.
     //
@@ -103,7 +272,71 @@ public class Horse
     {
         this.horseSymbol = newSymbol;
     }
+
+    // used to set the finishedRace variable
+    //
+    public void setFinishedRace(boolean finished)
+    {
+        this.finishedRace = finished;
+    }
+
+    // this function sets the rececords loss numbber to the new passed in number.
+    //
+    public void setLoss(int loss)
+    {
+        if (loss >= 0)
+        {
+            record.setLossNumber(loss);
+        }
+
+    }
+
+    // this function will allow us to set the speed of the horse.
+    //
+    public void setSpeed(int speed)
+    {
+        this.speed = speed;
+    }
+
+    // This function will set the new betting amout for the horse.
+    //
+    public void setHorseBetAmount(double amount)
+    {
+        this.bettingAmount = amount;
+    }
+
+    // This function will set the total amount of people who have betted on this horse:
+    //
+    public void setTotalBets(int numberOfBets)
+    {
+        this.totalBets = numberOfBets;
+    }
+
+    //This function will set the odds for this horse class.
+    //
+    public void setOdds(double newOdds)
+    {
+        this.odds = newOdds;
+    }
     
+    // this function will set the new fastest finish time, but only if it's smaller than the previosu fastest finish time.
+    //
+    public void setFinishTime(long finishTime)// convert into seconds which is a more readable format.
+    {
+        double finishTimeInSeconds = finishTime / 1000.0;
+        this.finishTime = finishTimeInSeconds ;// update most recent finish time.
+        if ((finishTimeInSeconds < this.record.getFastestFinishTime()) && (this.record.getFastestFinishTime() != -1))
+        {
+            this.record.setFastestFinishTime(this.finishTime);
+        }
+        else if (this.record.getFastestFinishTime()  == -1)// the horse hasn't won yet, so any finish time is it's fastest finish time.
+        {
+            this.record.setFastestFinishTime(this.finishTime);
+        }
+        // also calculate and add the average speed for this race to the records.
+        this.record.addAverageSpeed((this.distanceTravelled  * Lane.getScale() / finishTimeInSeconds));// we need to scale up the average speed into m/s
+    }
+
     /**************other methods for Horse class. **********/
     
     // if the horse has fallen, reduce it;s confidence by 10% and set the hasFallen attribute to true.
@@ -111,14 +344,40 @@ public class Horse
     public void fall()
     {
         this.hasFallen = true;
-        this.setConfidence(this.getConfidence() * 0.9);
+        this.record.setFallCount(this.record.getFallCount() + 1);
+        this.record.addAverageSpeed(-1.0);// give it a DNF value.
+        this.record.addPosition(-1);// can't even finish race.
+        if (!(this.item.equals("winner's saddle")))// decrease confidence only if horse isn't wearing the winner's saddle.
+        {
+            this.setBaseConfidence(this.getBaseConfidence() * 0.7);
+        }
+
     }
 
     // incrments horse's current distance travelled by one
     //
     public void moveForward()
     {
-        this.distanceTravelled ++;
+        double baseMovement = this.distanceTravelled + (getSpeed() * STRIDE);
+        if (this.item.equals("Speedy Horseshoe"))
+        {
+            baseMovement++;
+        }
+
+        if (this.item.equals("Balanced Horseshoe"))
+        {
+            baseMovement--;
+        }
+
+        if (!this.type.equals("Wild"))
+        {
+            this.distanceTravelled = baseMovement;
+        }
+        else
+        {
+            Random randomMovement = new Random();
+            this.distanceTravelled = baseMovement + randomMovement.nextInt(5);
+        }
     }
     // reset's the horse, except for it's confidence (i.e distance travelled and hasFallen attributes are back to their default)
     // values
@@ -127,13 +386,25 @@ public class Horse
     {
         this.distanceTravelled = 0;
         this.hasFallen = false;
+        this.finishedRace = false;
+        this.setConfidence(this.getBaseConfidence());
+        this.setSpeed(this.getBaseSpeed());// this initialises the speed 
+        this.setSymbol(this.getBackUpSymbol());
     }
 
-    // method to print out the horse stats and name
+    // This function will hard reset the horse's confidence back to what the user initially inputted the confidecne to be
+    // (used whenever a new race starts)
     //
-    public void printStats()
+    public void hardResetConfidence()
     {
-        String formattedConfidenceString = HelperFunctions.displayNDecimalPlaces(this.getConfidence(),2 );// display confidence to 2dp
-        System.out.println(this.getName() + "( current confidence " + formattedConfidenceString + ")");
+        this.baseConfidence = this.ORIGINALCONFIDENCE;
+    }
+
+    /***** adders */
+    public void addBetAmount(double newAmount)
+    {
+        this.bettingAmount = this.bettingAmount + newAmount;
+        this.totalBets++;
+        Betting.incrementTotalBets();
     }
 }

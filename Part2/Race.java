@@ -1,25 +1,55 @@
-package Part1;
-import java.util.concurrent.TimeUnit;
+package Part2;
 import java.lang.Math;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Collections;
 /**
  * A three-horse race, each horse running in its own lane
  * for a given distance
  * 
  * @author McRaceface, Fahi Sabab, Al
- * @version 1.9 10/4/2025
+ * @version 1.23 28/4/2025
  * 
- * - when a horse is eliminated it now displays 'X', rather than the placeholder due to unsupported unicode characters.
+ * - gave the horse races a more realistic distance range.
+ * - fixed bug of not resetting horse odds and bet amounts etc whenever a brand new race is started.
+ * - fixed bug of always adding in an extra row when saving horse/ track data.
+ * - added in check to prevent excess rows for betting data.
+ * - added in function to remove any excess rows for both horse amd record data.
  *
  */
 public class Race
 {
-    private int raceLength;// default value
-    private List<Horse> lane;// use an arrayList to dynamically store the horses in the lanes.
-    private List<Horse> currentHorses;// store all the used horses.
-    private final int MAXLANES = 20;// maximum number of lanes that the program will allow
+    private final int MAXLANES = 10;// maximum number of lanes that the program will allow
+    private final int MAXDISTANCE = 2400;
+    private final int  MINDISTANCE= 500;
+    private int raceLength = MINDISTANCE;// default value
+    private List<Lane> lanes = new ArrayList<>();// use an arrayList to dynamically store the current number of lanes.
+    private List<Horse> currentHorses = new ArrayList<>();// store all the used horses.
+    public int activeHorses; // used to represent horses who have yet to finish race and has not fell.
+    private int finishedCount = 0;// a counter of the number of horses who finished race.
+    private int round = 0;
+    private int totalFalls = 0;// keeps track of number of horses which fell this round.
     private int remainingHorses = 0;
+    private String raceStartTime;
+    private String currentWeather = "Normal";
+    private TrackRecord record;
+    private UserBets bettingRecord;
+    private boolean hasBetted = false;// checks if user has already betted this round.
+    private boolean raceStarted = false;
+    private Horse bettedHorse;// this is here to keep track of which horse the user has betted for per round.
+    private static final Map<String, double[]> AllWEATHER = new HashMap<String, double[]>();
+    static {
+        // double values are as follows: confidence (multiplier), speed (additivie), fall chance (multiplier)
+        // smaller fall chance, more likley horse is to fall.
+        AllWEATHER.put("Normal", new double[]{1, 0, 1});
+        AllWEATHER.put("Rainy", new double[]{0.85, 0, 0.8});
+        AllWEATHER.put("Sunny", new double[]{1.25, 0, 1});
+        AllWEATHER.put("Muddy", new double[]{1, -1, 1.2});
+        AllWEATHER.put("Icy", new double[]{0.8, -1, 0.5});
+    }
 
     /**
      * Constructor for objects of class Race
@@ -27,50 +57,67 @@ public class Race
      * 
      * @param distance the length of the racetrack (in metres/yards...)
      */
-    public Race()
+    public Race() 
     {
-        raceLength = 30;
-        lane = new ArrayList<Horse>();
-        currentHorses = new ArrayList<Horse>();
+        initialiseLanes(2);
     }
+
     /**********race set up **************/
-
-
-    // This funcrion just initialises the lane attribute with nulls, it gets passed in an integer ( > 2) where it 
-    // then creates that many lanes
+    // this function insitialies the track with empty lanes, number of lanes is passed in
     //
-    private void initialiseLanes(int numberOfLanes)
+    public void initialiseLanes(int numberOfLanes) 
     {
-        for (int i = 0; i < numberOfLanes; i++)
+        for (int i = 0; i < numberOfLanes; i++) 
         {
-            lane.add(null);
+            addLane();
         }
+    }
+
+    // this function will generate a new random weather:
+    //
+    public void setRandomWeather()
+    {
+        Random roll = new Random();
+        double randomValue = roll.nextDouble();
+        if (randomValue <= 0.4) // 40% to be normal weather
+        {
+            this.currentWeather = "Normal";
+        }
+        else if(randomValue <= 0.55) // 15% to be rainy
+        {
+            this.currentWeather = "Rainy";
+        }
+
+        else if (randomValue <= 0.7)// 15% to be sunny
+        {
+            this.currentWeather = "Sunny";
+        }
+        else if(randomValue <= 0.9)// 20% to be muddy
+        {
+            this.currentWeather = "Muddy";
+        }
+        else// 10% to be icy.
+        {
+            this.currentWeather = "Icy";
+        }
+        this.record.addWeather(this.currentWeather);
     }
 
     // this methods resets the attrbute for a fresh new race
     //
-    private void resetRace()
+    public void resetRace()
     {
-        this.lane = new ArrayList<Horse>();
-        this.currentHorses = new ArrayList<Horse>();
+        this.lanes.clear();
+        initialiseLanes(2);
+        this.currentHorses = new ArrayList<>();
         this.remainingHorses = 0;
-        this.raceLength = 30;
+        this.raceLength = MINDISTANCE;// default value
+        this.finishedCount = 0;
     }
 
+    /********** Horse management ************/
 
-    // This function is used intialise the race with the number of lanes and alos the race length:
-    //
-    private void intitialiseRace()
-    {
-        final int MAXRACELENGTH = 100;
-        final int MINRACELENGTH = 10;
-
-        initialiseLanes(HelperFunctions.getValidInteger("please enter the amount of lanes that you want (minimum 2, max 20)", 2, MAXLANES));
-        this.raceLength = HelperFunctions.getValidInteger("please enter in the race length as an integer (min 10, max 100)", MINRACELENGTH, MAXRACELENGTH);
-    }
-    //********** Horse management ************/
-
-     /**
+    /**
      * Adds a horse to the race in a given lane
      * 
      * @param theHorse the horse to be added to the race
@@ -78,16 +125,14 @@ public class Race
      */
     // if lane is empty, add the horse to the lane, otherwise print out name of the horse that is already in the lane.
     //
-    private void addHorse(Horse theHorse, int laneNumber)
+    public void addHorse(Horse theHorse, int laneNumber)
     {
-       
-        lane.set(laneNumber - 1, theHorse); // add the horse to the lane
+        lanes.get(laneNumber).setHorse(theHorse); // add the horse to the lane
         currentHorses.add(theHorse); // add the horse to the list of  the current horses
         remainingHorses ++;
     }
 
-
-     /**
+    /**
      * Randomly make a horse move forward or fall depending
      * on its confidence rating
      * A fallen horse cannot move
@@ -96,38 +141,51 @@ public class Race
      */
     private void moveHorse(Horse theHorse)
     {
-        //if the horse has fallen it cannot move, 
-        //so only run if it has not fallen
+        // we will also generate a new betting odds value for the horse here.
+        double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
+        double FallChanceModifier =  AllWEATHER.get(this.currentWeather)[2];
+        String[] currentWeatherValues = {this.currentWeather, String.valueOf(confidenceModifier), String.valueOf(FallChanceModifier)};
+        theHorse.setOdds(Betting.calculateOdds(currentWeatherValues, this.record.getWeathers().toArray(new String[0]), 
+        theHorse, currentHorses.size()));
+
+        double baseMultiplier = 1.0;// base chance for horse to fall.
+        if (theHorse.getItem().equals("Speedy Horseshoe"))
+        {
+            baseMultiplier = 0.75;
+        }
+        if (theHorse.getItem().equals("Balanced Horseshoe"))
+        {
+            baseMultiplier = 1.25;
+        }
         if  (!theHorse.hasFallen())
         {
-            //the probability that the horse will move forward depends on the confidence;
             if (Math.random() < theHorse.getConfidence())
             {
                theHorse.moveForward();
             }
-            
-            //the probability that the horse will fall is very small (max is 0.1)
-            //but will also will depends exponentially on confidence 
-            //so if you double the confidence, the probability that it will fall is *2
-            if (Math.random() < (0.1*theHorse.getConfidence()*theHorse.getConfidence()))
+
+            // consider the falling chance from the specific weather.
+            if (Math.random() < (0.1 * theHorse.getConfidence() * theHorse.getConfidence() * AllWEATHER.get(this.currentWeather)[2]
+             * baseMultiplier))
             {
+                this.totalFalls++;
                 theHorse.fall();
-                remainingHorses --;// if horse has fallen, then decrement the number of remaining horses.
+                this.activeHorses --;
+                remainingHorses --;
             }
         }
     }
-        
+
     /** 
      * Determines if a horse has won the race
      *
      * @param theHorse The horse we are testing
      * @return true if the horse has won, false otherwise.
      */
-    private boolean raceWonBy(Horse theHorse)
+    private boolean horsePassedFinishLine(Horse theHorse)
     {
-        if (theHorse.getDistanceTravelled() == raceLength)
+        if (theHorse.getDistanceTravelled() >= raceLength)
         {
-            System.out.println(theHorse.getName() + " has won!!!");// print out name of horse that won
             return true;
         }
         else
@@ -136,386 +194,619 @@ public class Race
         }
     }
 
-     // checks if the passed in symbol is already in use by another horse.
+    // checks if the passed in name is already in use by another horse.
     // if it is, then return false, otherwise return true.
     //
-    private boolean isUniqueHorse(char symbol)
+    public boolean isUniqueHorse(String name)
     {
         for (int i = 0; i < currentHorses.size(); i++)
         {
-            if (currentHorses.get(i).getSymbol() == symbol)// mabye extend this check to names as well later.
+            if (currentHorses.get(i).getName().equals(name))
             {
-                return false; // horse is not unique
+                return false;
             }
         }
-        return true; // horse is unique
-    }
-
-
-     // this functions allows user to create a horse if the lanes are not full, uses the addHorse function to update both the lane
-    // and currentHorses arrayLists.
-    //
-    private void createValidHorse()
-    {
-        int laneLength = lane.size();
-        if (isLaneFull())
-        {
-            System.out.println("sorry but all lanes are full, we cannot add new horses at the moment");
-        }
-        else
-        {
-            char horseSymbol = getValidHorseSymbol("Enter the horse symbol: "); // get the horse symbol from the user
-            String horseName = getValidHorseName("Enter the horse name: "); // get the horse name from the user
-            double horseConfidence = getValidHorseConfidence("Enter the horse confidence (0.0 - 1.0): "); // get the horse confidence from the user
-        
-            Horse newHorse = new Horse(horseSymbol, horseName, horseConfidence); // create a new horse object
-    
-        
-            int laneNumber = getValidLaneNumber("Enter the lane number must be between (1-" + laneLength + "): "); // get the lane number from the user
-            addHorse(newHorse, laneNumber);
-        }
-       
-
+        return true;
     }
 
     // This method goes through all the active horses and then makes them go back to start, also resetting their 
     // hasFallen attributes back to false.
     // also make remainingHorses be the size of the currentHorses arrayList again
     //
-    private void resetDistanceAllHorses()
+    public void resetDistanceAllHorses()
     {
-        for (int i = 0; i < currentHorses.size(); i++)
+        for (int i = 0; i < lanes.size(); i++)
         {
-            currentHorses.get(i).goBackToStart();
+            Horse horse = lanes.get(i).getHorse();
+            if (horse != null)
+            {
+                horse.goBackToStart();
+                double confidenceModifier = AllWEATHER.get(this.currentWeather)[0];
+                double speedModifier = AllWEATHER.get(this.currentWeather)[1];
+                // applying weather modifiers to horses, but only if the horse isn't wearing the weather proof jacket.
+                if (!horse.getItem().equals("Weather proof jacket"))
+                {
+                    horse.setConfidence(horse.getConfidence() * confidenceModifier);
+                    horse.setSpeed(horse.getSpeed() + (int) speedModifier);
+                }
+                horse.getHorseRecord().addConfidence(horse.getConfidence());// record confidence change.
+                // reset the horse's visual to the normal horse symbol, and move it back to the start of the lane.
+                lanes.get(i).resetHorseVisual();
+                lanes.get(i).updateHorseVisual();
+            }
         }
+        
         remainingHorses = currentHorses.size();
+        activeHorses = currentHorses.size();
+        this.finishedCount = 0;
+        this.totalFalls = 0;
+        
     }
 
     // goes through all active horses and moves them
     //
-    private void moveAllHorses()
+    public void moveAllHorses()
     {
-        for (int i = 0; i< currentHorses.size(); i ++)
+        for (int i = 0; i< lanes.size(); i ++)
         {
-            moveHorse(currentHorses.get(i));
-        }
-    }
-
-    // goes through all active horses and checks if any of them won, if yes, then output true, otherwise output false
-    // returns boolean
-    //
-    private boolean  checkWin()
-    {
-        boolean win = false;
-        //if any of the horses has won the race is finished
-        for (int i = 0; i < currentHorses.size(); i++)
-        {
-            if(raceWonBy(currentHorses.get(i)))
+            Horse horse = lanes.get(i).getHorse();
+            if (horse != null)
             {
-                win = true;
-                Horse winner =currentHorses.get(i);
-                winner.setConfidence(winner.getConfidence() * 1.2);
+                if (horse.hasFinishedRace()) 
+                {
+                    continue; // already finished race, move onto next horse.
+                }
+
+                moveHorse(horse);
+                // if horse has fallen, make the visual be the 'X' emoji.
+                if (horse.hasFallen())
+                {
+                    lanes.get(i).showEliminatedHorse();
+                }
+                lanes.get(i).updateHorseVisual();
+
             }
         }
-        return win;
     }
 
+    //This function will get a horse, and then determine how good it's performance is inside the race.
+    // returns how good the horse as a double.
+    //
+    private double getHorsePerformanceValue(Horse horse)
+    {
+        double winRatio = horse.getHorseRecord().getWinLossRatio() * 30;// random scale value
+        double falls = horse.getHorseRecord().getFallCount();
+        return winRatio - falls;
+
+    }
+
+    // This function will get let a simple AI/algorithm to bet on the selected horse.
+    //
+    private void AIBetOnHorse(Horse horse)
+    {
+        Random random = new Random();
+        double amount = 0;
+        double peformance = getHorsePerformanceValue(horse);
+        if (peformance >= 60)
+        {
+            // AI will bet between 35 and 50
+            amount = 35 + (50 - 35) * random.nextDouble();
+        }
+        else if (peformance >= 20)
+        {
+            // AI will bet between 15 and 35
+            amount = 15 + (35 - 15) * random.nextDouble();
+        }
+        else
+        {
+            // AI will bet between MINBETAMOUNT and 20
+            amount = Betting.MINBETAMOUNT + (20 - Betting.MINBETAMOUNT) * random.nextDouble();
+        }
+        horse.addBetAmount(amount);
+    }
+
+    // This function fill be used to decide if AI wats to randomly bet on a horse or not.
+    //
+    public void randomBet()
+    {
+        Random random = new Random();
+        int roll =  random.nextInt(30);// 1/30 change for ai to bet on a random horse.
+        if (roll == 0)
+        {
+            roll = random.nextInt(currentHorses.size());// pick out a random horse thats in the race.
+            AIBetOnHorse(currentHorses.get(roll));
+        }
+    }
+
+    // this function just sorts the arrayList of current horses based on distances, the first index contains the leading horse
+    // (most distance covered)
+    //
+    private void sortHorsesByDistance() 
+    {
+        Collections.sort(currentHorses, (h1, h2) -> 
+            Double.compare(h2.getDistanceTravelled(), h1.getDistanceTravelled()));
+    }
+
+    // This function checks and processes when a horse has passed the finishLine( finished the race)
+    // preCondition: every horse passed in here has crossed the finish line.
+    //
+    private void processHorseFinish(Horse horse, long timer) 
+    {
+        long finishTime = System.currentTimeMillis() - timer;
+    
+        record.setHorseLeaderData(finishTime, horse.getName());
+        horse.getHorseRecord().addPosition(finishedCount + 1);
+    
+        if (finishedCount == 0) // Winner
+        { 
+            horse.getHorseRecord().setWinNumber(horse.getHorseRecord().getWinNumber() + 1);
+            this.record.getWinningHorses().add(horse.getName());
+            
+            if (!horse.getItem().equals("Winner's Saddle")) 
+            {
+                horse.setBaseConfidence(horse.getBaseConfidence() * 1.2);
+            }
+        } 
+        else // Loser
+        { 
+            horse.getHorseRecord().setLossNumber(horse.getHorseRecord().getLossNumber() + 1);
+        }
+    
+        horse.setFinishTime(finishTime);
+        horse.setFinishedRace(true);
+    
+        activeHorses--;
+        finishedCount++;
+    }
+
+    // This function checks to see if all remaining horses have crossed the lane. (ignores fallen horses)
+    // returns a boolean value
+    //
+    public boolean didremainingHorseFinish(long timer)
+    {
+        sortHorsesByDistance();
+
+        if (activeHorses > 0) {
+            for (int i = 0; i < currentHorses.size(); i++) 
+            {
+                Horse horse = currentHorses.get(i);
+                if (horse.hasFallen() || horse.hasFinishedRace()) 
+                {
+                    continue;
+                }
+    
+                if (horsePassedFinishLine(horse)) 
+                {
+                    processHorseFinish(horse, timer);
+                }
+            }
+        }
+        return activeHorses <= 0;
+    }
+
+    // this gives horses who took too long a dnf placement and time. (-1)
+    //
+    public void giveDNFs()
+    {
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            if ((currentHorses.get(i).hasFinishedRace() == false && !currentHorses.get(i).hasFallen()))
+            {
+                currentHorses.get(i).getHorseRecord().addPosition(-1);
+                currentHorses.get(i).getHorseRecord().addAverageSpeed(-1.0);
+
+            }
+        }
+    }
 
     /************** User validation **********/
+
     // checks if the lane is empty or not.
     //
-    private boolean isLaneEmpty(int laneNumber)
+    public boolean isLaneEmpty(int laneNumber)
     {
-        return (lane.get(laneNumber - 1) == null);// check if the lane is empty
+        return (lanes.get(laneNumber).getHorse() == null);
     }
 
     // checks if the lane is full or not. Returns boolean
     //
-    private boolean isLaneFull()
+    public boolean isLaneFull()
     {
-        return (lane.size() == currentHorses.size());// check if all lanes are full (e.g. number of horses are the same as number of lanes)
-
+        return (lanes.size() == currentHorses.size());
     }
 
-    
-    // this function makes sure that the user types in a valid Horse symbol before the program moves on
-    // returns the valid symbol
+    // this function is used to check if at least 2 horses are inside the lanes (before race starts)
     //
-    private  char getValidHorseSymbol(String message) 
+    public boolean isAtLeastTwoHorses()
     {
-        String input;
-        input = HelperFunctions.getInput(message);
-        while (input.length() != 1 || !isUniqueHorse(input.charAt(0)) || input.equals("X"))// check if the symbol is valid
-        {
-            if (input.length() != 1) // check if the input is a single character
-            {
-                System.out.println("Please enter a single character.");
-            }
-            else if (input.equals("X"))
-            {
-                System.out.println("Sorry but this character is reserved for a special purpose");
-            }
-            else
-            {
-                System.out.println("sorry but this symbol is already in use. Please choose another symbol.");
-            }
-            input = HelperFunctions.getInput(message);
-        }
-        return input.charAt(0); // return the valid character
+        return currentHorses.size() >= 2;
     }
 
-    //This function makes sure that the user types in a valid horse name before the program moves on,
-    // returns the valid name
+    // checks to see if the number of lanes is less than or equal to 2( can't have a race with fewer than 2 lanes)
+    // returns boolean
     //
-    private static String getValidHorseName(String message) // mabye extend this to prevent duplicate names.
+    public boolean overMinimumLanes()
     {
-        String input = "";
-        while (input.trim() == "") // name must be a non empty string.
-        {
-            input = HelperFunctions.getInput(message);
-        }
-        return input; // return the valid name
+        return (lanes.size() > 2);
     }
 
-    // makes sure user inputs in a valid confidence value during initial set up of horse
-    // returns a double value representing the valid confidence
+    // check to see if number of lanes exceeds the maximum number of allowed lanes
+    // returns boolean
+    public boolean exceedsMaxLanes()
+    {
+        return lanes.size() >= MAXLANES;
+    }
+
+    /************lane management ******/
+
+    // adds an empty lane to the race track.
+    // precondition: lane is not full
     //
-    private static double getValidHorseConfidence(String message)
+    public void addLane()
     {
-        double horseConfidence = -1.0;
-        while (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is valid
-        {
-            try{
-                horseConfidence = Double.parseDouble(HelperFunctions.getInput(message)); // get the horse confidence from the user
-            }catch(NumberFormatException e)
-            {
-                System.out.println("Please enter a number between 0 and 1, as a decimal");
-                horseConfidence = -1.0; // set the confidence to -1 to continue the loop
-            }
-            if (horseConfidence < 0 || horseConfidence > 1) // check if the confidence is inside valid range
-            {
-                System.out.println("must be between 0 and 1, please try again.");
-            }
-    
-        }
-        return horseConfidence; // return the valid confidence
+        lanes.add(new Lane(lanes.size() + 1, raceLength));
     }
 
-    // gets valid Lane number from user when entering in a lane for the horse
-    // precondition: lanes are not full
-    // retuns an integer representing the lane number.
+    //removes a lane in the race track
+    // precondition: number of lanes is greater than 2
     //
-    private  int getValidLaneNumber(String message)
+    public void removeLane()
     {
-        int laneNumber = -1;
-        int laneLength = lane.size();
-        while (laneNumber < 1 || laneNumber > laneLength) // check if the lane number is valid
+        // if the current lane has a horse, remove that horse.
+        if (lanes.get(lanes.size() -1).getHorse() != null)
         {
-            try{
-                laneNumber = Integer.parseInt(HelperFunctions.getInput(message)); // get the lane number from the user
-            }catch(NumberFormatException e)
-            {
-                System.out.println(message);
-                laneNumber = -1; 
-            }
-
-            if (laneNumber < 1 || laneNumber > laneLength) // check if the lane number is inside valid range
-            {
-                System.out.println(message);
-            }
-            else if (!isLaneEmpty(laneNumber)) // check if the lane is empty
-            {
-                System.out.println("Lane " + laneNumber + " is already occupied by " + lane.get(laneNumber - 1).getName());
-                laneNumber = -1; // set the lane number to -1 to continue the loop
-            }
-    
+            currentHorses.remove(currentHorses.size() - 1);
         }
-        return laneNumber; // return the valid lane number
+        lanes.remove(lanes.size() -1);
     }
-
-    /******* functions to handle the main game loop */
    
 
-    // This is the main loop and entry point of the program, user can start races, add horses and end the program from here
-    // they can also start races from scratch.
+    /*********getter methods */
+    // this function gets the total amount of remaining horses.
     //
-    public void startRace()
+    public int getRemainingHorses()
     {
-        String userInput = "";
-        while (!userInput.equals("END"))
-        {
-            userInput = handleIndivisualRace();// will either be new race, or end program, if it;s end program it will exit out of
-            // the game, otherwise repeat the entire loop from scratch.
-            if (userInput.equals("NEW"))
-            {
-                resetRace();
-            }
-        }
+        return this.remainingHorses;
     }
 
-    /**
-     * Start the race
-     * The horse are brought to the start and
-     * then repeatedly moved forward until the 
-     * race is finished
-     */
-    private void launchRace()
-    {
-        boolean finished = false;
-
-        resetDistanceAllHorses();// reset all horses except for their confidence.     
-        while (!finished)
-        {
-            moveAllHorses();// move all horses, some horses may fall
-    
-            //print the race positions
-            printRace();
-            
-            // check if a horse has won yet.
-            finished = checkWin();
-        
-            if (remainingHorses == 0) // check if all horses have fallen, if so then end the race early.
-            {
-                finished = true;
-                System.out.println("All horses have fallen. No winner.");
-            } 
-            //wait for 100 milliseconds
-            try{ 
-                TimeUnit.MILLISECONDS.sleep(100);
-            }catch(Exception e){}
-        }
-    }
-
-    
-    // This function handles the main user actions which relates to an indivisual race (e.g. add horse, replay race, end program etc)
+    // returns the Lane from the specified index
     //
-    private String handleIndivisualRace()
+    public Lane getLane(int index)
     {
-        String userInput = "";
-        String  initialChoices= "do you want to add a horse (ADD), start the race (START), create a new race (NEW) or end the program (END)? ";
-        String postRaceChoices = "Do you want to replay the race (CONTINUE), start a new race from scratch (NEW) or end the program (END)? ";
-        
-        intitialiseRace();
-        while (!userInput.equals("END") && !userInput.equals("NEW"))
-        {
-            userInput = HelperFunctions.getValidInput(initialChoices, new String[]{"ADD", "START", "NEW", "END"}); // get the user input from the user
-            if (userInput.equals("ADD"))
-            {
-                createValidHorse();
-            }
-            else if (userInput.equals("START"))
-            {
-                if (currentHorses.size() <2)
-                {
-                    System.out.println("we need at least 2 horses to start, currently we have " + currentHorses.size() + " horses.");
-                }
-                else
-                {
-                    launchRace();
-                    // either ask if you would like to start a new race or end the program. or continue with old race.
-                    userInput = HelperFunctions.getValidInput(postRaceChoices, new String[]{"CONTINUE", "END", "NEW"});// add a option to start a new race from scratch.
-                }
-            }
-        }
-        return userInput;// either they want to end program to make a new race.
+        return lanes.get(index);
     }
 
-    
-    
-    /******* functions relating to how the program looks in the terminal **********/
-    
-
-    /***
-     * Print the race on the terminal
-     */
-    private void printRace()
+    // returns the entire arrayList of lanes
+    //
+    public List<Lane> getAllLanes()
     {
-        System.out.print('\u000C');  //clear the terminal window
-        
-        multiplePrint('=',raceLength+3); //top edge of track
-        System.out.println();
-        
-        for (int i = 0; i < lane.size(); i++)
-        {
-            //print the lane for each horse
-            printLane(lane.get(i));
-            System.out.println();
-        }
-        
-        multiplePrint('=',raceLength+3); //bottom edge of track
-        System.out.println();    
+        return this.lanes;
     }
-    
-    /**
-     * print a horse's lane during the race
-     * for example
-     * |           X                      |
-     * to show how far the horse has run
-     */
-    private void printLane(Horse theHorse)
-    {   
-        final int MARGINFORSTATS = 30;
-        if (theHorse == null) // check if the lane is empty
+    // returns the number of lanes currently in the race.
+    //
+    public int getTotalLanes()
+    {
+        return lanes.size();
+    }
+
+    // returns the maximum number of lanes for the race class
+    //
+    public int getMaxLanes()
+    {
+        return MAXLANES;
+    }
+
+    // function to return the current race lenght of the track( returns an int)
+    //
+    public int getRaceLength()
+    {
+        return this.raceLength;
+    }
+    // this function returns an int representing minimum distance a track can be
+    //
+    public int getMaxDistance()
+    {
+        return MAXDISTANCE;
+    }
+
+    // this function returns an int representing the maximum distance a track can be
+    //
+    public int getMinDistance()
+    {
+        return MINDISTANCE;
+    }
+
+    // this function returns the current weather.
+    //
+    public String getCurrentWeather()
+    {
+        return this.currentWeather;
+    }
+
+    // returns an arrayList of all active horses.
+    //
+    public List<Horse> getCurrentHorses()
+    {
+        return this.currentHorses;
+    }
+
+    // this function returns the stored race-time, (the first time the race was started from the race set up screen).
+    //
+    public String getRaceStartTime()
+    {
+        return this.raceStartTime;
+    }
+
+    //This function checks if the race has started.
+    public boolean hasRaceStarted()
+    {
+        return this.raceStarted;
+    }
+
+    // This function is used to get the race's record.
+    //
+    public TrackRecord getRecord()
+    {
+        return this.record;
+    }
+    // this function returns the lead horse.
+    //
+    public Horse getLeadHorse()
+    {
+        double maxDistance = -1;
+        Horse leadHorse = new Horse('a', null, maxDistance, "Arabian", "no Item");
+        for (int i =0; i < currentHorses.size(); i++)
         {
-            printEmptyLane(); // print empty lane
-            return; 
+            if (currentHorses.get(i).getDistanceTravelled() > maxDistance)
+            {
+                leadHorse = currentHorses.get(i);
+                maxDistance = leadHorse.getDistanceTravelled();
+            }
+        }
+        return leadHorse;
+    }
+
+    // This function is used to return the indexes of all empty lanes, returns an array of integers.
+    //
+    public int[] getAllEmptyLaneIndexes()
+    {
+        int nextFree = 0;
+        int[] emptyLanes = new int[lanes.size() - currentHorses.size()];// assign just the right amount of space
+        for (int i = 0; i < lanes.size(); i++)
+        {
+            if (lanes.get(i).getHorse() == null)
+            {
+                emptyLanes[nextFree] = i;
+            }
+        }
+        return emptyLanes;
+    }
+
+    // This function will get the userBetting record.
+    //
+    public UserBets getBettingRecord()
+    {
+        return this.bettingRecord;
+    }
+
+    // Returns if user has already betted for this round(boolean)
+    //
+    public boolean hasUserBetted()
+    {
+        return this.hasBetted;
+    }
+    /**************setter methods ************/
+    
+    // this function get's a distance and then set's the race's length to that distance.
+    //
+    public void setRaceLength(int distance)
+    {
+        this.raceLength = distance;
+        for (int i = 0; i < lanes.size(); i++)// also change the distances of the rest of the lanes
+        {
+            lanes.get(i).setDistance(distance);
+        }
+    }
+
+    // we can set if the race has started to true or false with this function
+    //
+    public void setStartedRace(boolean started)
+    {
+        this.raceStarted = started;
+    }
+
+    // this function will set the raceStartTime attribute:
+    //
+    public void setRaceStartTime(String newTime)
+    {
+        this.raceStartTime = newTime;
+    }
+
+    // This function increments the race's round varibale:
+    //
+    public void incrementRound()
+    {
+        this.round++;
+        this.record.setTotalRounds(round);// make sure to update the record.
+    }
+
+
+    /******** functions relating to trackRecrod and HorseRecord ********/
+
+    // this function will hard reset all horses (icluding their horse records)
+    // and also create a fresh new TrackRecord.
+    public void startRecord(String date)
+    {
+        this.bettedHorse = null;// reset this variable, as it needs to be reset every racem not every round.
+        this.round = 0;// also initialise/ reset the round number to 1 again.
+        // this also resets old record if it existed previously.
+        this.record = new TrackRecord(date, raceLength, lanes.size(), currentHorses.size());
+        this.bettingRecord = new UserBets(date);// reset the user betting history again.
+        resetHorseRecords(date);
+        resetHorseBets();
+    }
+
+    public void finaliseRaceRecord()
+    {
+        int totalWins = 0;
+        double averageSpeed = 0.0;
+        int horsesWithValidSpeeds = currentHorses.size();
+        this.raceStarted = false;
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            // get each horse's record/ stats.
+            HorseRecord horseStats = currentHorses.get(i).getHorseRecord();
+            if ((round) >= horseStats.getAverageSpeed().size() || (round <0))// invalid ranges, just return from the function.
+            {
+                return;
+            }
+
+            totalWins = totalWins + horseStats.getWinNumber();
+            if (horseStats.getAverageSpeed().get(round) != -1.0)
+            {
+                averageSpeed = averageSpeed + horseStats.getAverageSpeed().get(round);
+            }
+            else// horse had an invalid average speed.
+            {
+                horsesWithValidSpeeds --;
+            }
         }
 
-        //calculate how many spaces are needed before
-        //and after the horse
-        int spacesBefore = theHorse.getDistanceTravelled();
-        int spacesAfter = raceLength - theHorse.getDistanceTravelled();
-        
-        //print a | for the beginning of the lane
-        System.out.print('|');
-        
-        //print the spaces before the horse
-        multiplePrint(' ',spacesBefore);
-        
-        //if the horse has fallen then print dead
-        //else print the horse's symbol
-        if(theHorse.hasFallen())
+        if (averageSpeed <= 0.0)// all horses fell or no horses won for some reason
         {
-            System.out.print("X");// symbol to depict that horse has fallen over.
+            this.record.addAverageSpeed(-1.0);// DNF value
         }
         else
         {
-            System.out.print(theHorse.getSymbol());
+            this.record.addAverageSpeed(averageSpeed / horsesWithValidSpeeds);// only use the valid horses with valid average speed
+                                                                             // for calculation.
         }
-        
-        //print the spaces after the horse
-        multiplePrint(' ',spacesAfter);
-        
-        //print the | for the end of the track
-        System.out.print('|');
-        multiplePrint(' ', MARGINFORSTATS);// give consistent spacing between lane and stats.
-        theHorse.printStats();// print out name and confidence of the horse.
-        
+
+        this.record.setHorsesWon(totalWins);
+        this.record.addHorseFallStats(this.totalFalls);
+        this.record.fillMissingData(this.round);
+        if (this.record.getTotalRounds() < this.round)
+        {
+            this.record.setTotalRounds(this.round);
+        }
     }
 
-    // method to print an empty lane.
+    // This function will reset the horse record to be brand new.
     //
-    private void printEmptyLane()
+    public void resetHorseRecords(String date)
     {
-        System.out.print("|");
-        multiplePrint(' ', raceLength);
-        System.out.println("|");
-    }
-        
-    
-    /***
-     * print a character a given number of times.
-     * e.g. printmany('x',5) will print: xxxxx
-     * 
-     * @param aChar the character to Print
-     */
-    private void multiplePrint(char aChar, int times)
-    {
-        int i = 0;
-        while (i < times)
+        for (int i = 0; i < currentHorses.size(); i ++)
         {
-            System.out.print(aChar);
-            i = i + 1;
+            currentHorses.get(i).hardResetConfidence();// reset confidence to what the user initially inputted it as (ignores
+                                                       // wins and falls)
+            currentHorses.get(i).getHorseRecord().reset(date);
+        }
+    }
+
+    // This function will go around and reset the bet amount, total bets and odds on every horse.
+    //
+    private void resetHorseBets()
+    {
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            currentHorses.get(i).setHorseBetAmount(0.0);
+            currentHorses.get(i).setTotalBets(0);
+            currentHorses.get(i).setOdds(0);
+        }
+    }
+
+    // This function will just add a valid bet to the userBets record and also store the betted amount on the horse itself
+    //
+    public void handleUserBet(Horse horse, double amount)
+    {
+        if (!this.hasBetted)// user hasn't betted yet.
+        {
+            horse.addBetAmount(amount);// add the bet amount to the horse
+            // store dat in the userBets record.
+            bettingRecord.getNames().add(horse.getName());
+            bettingRecord.getWinnings().add(amount);// this specific value will be overwirtten when user wins/ loses
+            this.bettedHorse = horse;
+        }
+        this.hasBetted = true;
+
+    }
+
+    //This function checks if user has betted, and if they did, then thier results are recorded.
+    //
+    public void evaluateUserBet() 
+    {
+        double betAmount = 0;
+        int winningsLastIndex = 0;
+        double odds;
+        int winningHorseIndex = this.record.getWinningHorses().size() -1;
+        if (this.bettingRecord == null || this.bettedHorse == null) {
+            return;
+        }
+    
+        if (hasBetted) 
+        { // check if the user has betted this round
+            odds = this.bettedHorse.getOdds();
+            betAmount = bettingRecord.getWinnings().get(winningsLastIndex);
+            // if winning names are empty or the last winning horse does not match with what user has betted for: they lost.
+            if (!this.record.getWinningHorses().isEmpty())
+            {
+                if (!this.record.getWinningHorses().get(winningHorseIndex).equals(this.bettedHorse.getName())) // user lost.
+                {
+                    bettingRecord.getWinRecord().add("no");
+                    bettingRecord.getWinnings().set(winningsLastIndex, betAmount * -1);
+                    bettingRecord.updateEarnings(bettingRecord.getWinnings().get(winningsLastIndex));
+                }
+                else// user won.
+                {
+                    bettingRecord.getWinRecord().add("yes");
+                    bettingRecord.getWinnings().set(bettingRecord.getWinnings().size() - 1, betAmount * odds);
+                    bettingRecord.updateEarnings(bettingRecord.getWinnings().get(winningsLastIndex));
+                }
+            }
+            else
+            {
+                bettingRecord.getWinRecord().add("no");
+            }
+            this.hasBetted = false;// reset this.
+        }
+    }
+    
+    // This function will be used to write the track and horse records into their respective files.
+    //
+    public void saveData()
+    {
+        giveDNFs();
+        finaliseRaceRecord();
+        this.record.setTotalRounds(this.round);// before saving quicly update round to reflect most up to date version.
+
+        // trim off any excess duplicate data for the track record.
+        trimListToRound(this.record.getAverageSpeed());
+        trimListToRound(this.record.getWinningHorses());
+        trimListToRound(this.record.getHorseFalls());
+        trimListToRound(this.record.getWeathers());
+        CSVUtils.AppendToCSV("Part2/Records/TrackStats.csv", this.record);
+        if (this.bettedHorse != null)// since this does not reset into null until whenever a brandnew race starts
+        // we can use this to check if user even made a bet, if they didn't then no point of saving that file.
+        {
+            CSVUtils.AppendToCSV("Part2/Records/Bettings.csv", this.bettingRecord);
+        }
+        for (int i = 0; i < currentHorses.size(); i++)
+        {
+            // remove any duplicate redundant data.
+            trimListToRound(currentHorses.get(i).getHorseRecord().getPosition());
+            trimListToRound(currentHorses.get(i).getHorseRecord().getConfidence());
+            trimListToRound(currentHorses.get(i).getHorseRecord().getAverageSpeed());
+            CSVUtils.AppendToCSV("Part2/Records/horseStats.csv", currentHorses.get(i).getHorseRecord());
+        }
+    }
+
+    //This function will get passed in a list and then truncate it to the right length (used to remove any redundant data)
+    //
+    private <T> void trimListToRound(List<T> list) {
+        while (list.size() > this.round) 
+        {
+            list.remove(list.size() - 1);
         }
     }
 }
+
